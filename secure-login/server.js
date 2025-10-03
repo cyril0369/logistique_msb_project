@@ -82,24 +82,47 @@ app.get("/about_us", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "about_us.html"));
 });
 
-
-
-app.post("/signup", async (req, res) => {
-  
-  const { username, password } = req.body;
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
+app.get("/api/me", requireAuth, async (req, res, next) => {
   try {
-    await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", [
-      username,
-      hashedPassword,
-    ]);
-    res.send("User registered successfully!");
-  } catch (err) {
-    res.status(400).send("User already exists.");
+    const { rows } = await pool.query(
+      "SELECT username, first_name, last_name FROM users WHERE id = $1",
+      [req.session.userId]
+    );
+    if (!rows.length) return res.status(404).send("User not found");
+    return res.json(rows[0]);
+  } catch (e) {
+    next(e);
   }
 });
+
+
+
+app.post("/signup", async (req, res, next) => {
+  try {
+    const { username, password, first_name, last_name } = req.body;
+
+    if (!username || !password || !first_name || !last_name) {
+      return res.status(400).send("Missing fields");
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      `INSERT INTO users (username, password, first_name, last_name)
+       VALUES ($1, $2, $3, $4)`,
+      [username.trim(), hashed, first_name.trim(), last_name.trim()]
+    );
+
+    return res.status(201).send("User registered successfully!");
+  } catch (err) {
+    // Postgres unique violation (if you set a UNIQUE constraint on username)
+    if (err.code === "23505") {
+      return res.status(400).send("User already exists.");
+    }
+    return next(err);
+  }
+});
+
 
 // Login route
 app.post("/login", noCache, async (req, res) => {
@@ -117,6 +140,7 @@ app.post("/login", noCache, async (req, res) => {
   if (!isValid) return res.status(400).send("Invalid password");
 
   req.session.userId = user.id;
+  req.session.username = user.username;
   res.send("Logged in successfully!");
   });
 
