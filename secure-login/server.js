@@ -9,7 +9,16 @@ function requireAuth(req, res, next) {
   next();
 }
 
+async function requireAdmin(req, res, next) {
+  const result = await pool.query("SELECT is_admin FROM users WHERE id=$1", [
+    req.session.userId,
+  ]);
+  if (result.rows.length === 0) return res.status(400).send("User not found");
+  const user = result.rows[0];
+  if (!user.is_admin) return res.status(403).send("Access denied: Admins only.");
+  next();
 
+} 
 
 const express = require("express");
 const session = require("express-session");
@@ -74,6 +83,10 @@ app.get("/signup", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "signup.html"));
 });
 
+app.get("/signup_admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "signup_admin.html"));
+});
+
 app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
@@ -85,7 +98,7 @@ app.get("/about_us", (req, res) => {
 app.get("/api/me", requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      "SELECT username, first_name, last_name FROM users WHERE id = $1",
+      "SELECT username, first_name, last_name, is_admin FROM users WHERE id = $1",
       [req.session.userId]
     );
     if (!rows.length) return res.status(404).send("User not found");
@@ -123,6 +136,37 @@ app.post("/signup", async (req, res, next) => {
   }
 });
 
+app.post("/signup_admin", async (req, res, next) => {
+  try {
+    const { username, password, first_name, last_name} = req.body;
+    const admin_code = req.body.admin_code;
+
+    if (!username || !password || !first_name || !last_name || !admin_code) {
+      return res.status(400).send("Missing fields");
+    }
+    if (admin_code !== process.env.ADMIN_CODE) {
+      return res.status(403).send("Invalid admin code");
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      `INSERT INTO users (username, password, first_name, last_name, is_admin)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [username.trim(), hashed, first_name.trim(), last_name.trim(), 1]
+    );
+    return res.status(201).send("Admin user registered successfully!");
+  } catch (err) {
+    // Postgres unique violation
+    if (err.code === "23505") {
+      return res.status(400).send("User already exists.");
+    }
+    return next(err);
+  }
+});
+
+
+
 
 // Login route
 app.post("/login", noCache, async (req, res) => {
@@ -145,7 +189,7 @@ app.post("/login", noCache, async (req, res) => {
   });
 
 // Protected route
-app.get("/dashboard", requireAuth, noCache, (req, res) => {
+app.get("/dashboard", requireAuth, requireAdmin, noCache, (req, res) => {
   res.sendFile(path.join(__dirname, "protected", "dashboard.html"));
 });
 
