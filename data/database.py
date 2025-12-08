@@ -1,6 +1,5 @@
 import sqlite3
 import random
-from datetime import datetime, timedelta
 
 SQLALCHEMY_DATABASE_URL = "database.db"
 
@@ -127,7 +126,8 @@ sports = [
 
 for sport in sports:
     cursor.execute(
-        "INSERT INTO sport (nom_sport, type, nb_joueurs_equipe, temps_match) VALUES (?, ?, ?, ?)", sport)
+        "INSERT INTO sport (nom_sport, type, nb_joueurs_equipe, temps_match)\
+              VALUES (?, ?, ?, ?)", sport)
 
 equipes = [
     ("Équipe Rouge", None, 1, "Débutant", 1),
@@ -140,7 +140,8 @@ equipes = [
 
 for equipe in equipes:
     cursor.execute(
-        "INSERT INTO equipe (nom_equipe, capitaine_id, id_sport, niveau, id_ecole) VALUES (?, ?, ?, ?, ?)", equipe)
+        "INSERT INTO equipe (nom_equipe, capitaine_id, id_sport, niveau,\
+              id_ecole) VALUES (?, ?, ?, ?, ?)", equipe)
 
 # Récupérer les IDs des équipes et des écoles
 cursor.execute("SELECT id_equipe FROM equipe")
@@ -174,14 +175,17 @@ for i in range(30):
     id_ecole = random.choice(ecole_ids)
 
     cursor.execute('''
-    INSERT INTO personne (nom, prenom, sexe, mail, telephone, taille_teeshirt, equipe_id, status, alimentation, id_ecole)
+    INSERT INTO personne (nom, prenom, sexe, mail, telephone, taille_teeshirt,\
+                    equipe_id, status, alimentation, id_ecole)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (nom, prenom, sexe, mail, telephone, taille_teeshirt, equipe_id, status, alimentation, id_ecole))
+    ''', (nom, prenom, sexe, mail, telephone, taille_teeshirt, equipe_id,
+          status, alimentation, id_ecole))
 
 # Mise à jour des capitaines d'équipe
 for i, equipe_id in enumerate(equipe_ids, start=1):
     cursor.execute(
-        "UPDATE equipe SET capitaine_id = ? WHERE id_equipe = ?", (i, equipe_id))
+        "UPDATE equipe SET capitaine_id = ? WHERE id_equipe = ?",
+        (i, equipe_id))
 
 conn.commit()
 
