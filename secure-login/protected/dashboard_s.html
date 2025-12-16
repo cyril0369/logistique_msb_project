@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Staff Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Staff Dashboard</h1>
+      <p class="sub">Overall goodies demand.</p>
+
+      <div class="row" style="gap:8px; margin-bottom:10px;">
+        <button class="btn_sober" onclick="location.href='/order_detail'">See order details</button>
+        <button class="btn_sober" onclick="location.href='/orders'">Raw totals page</button>
+      </div>
+
+      <div id="totals" class="small"></div>
+      <canvas id="chart" height="140"></canvas>
+
+      <div id="msg" class="alert" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const totalsDiv = document.getElementById("totals");
+    const msg = document.getElementById("msg");
+    const ctx = document.getElementById("chart");
+
+    function show(text){
+      msg.textContent = text;
+      msg.className = "alert err";
+      msg.style.display = "block";
+    }
+
+    async function loadSummary(){
+      try {
+        const res = await fetch("/api/orders/summary", { credentials:"include" });
+        if (!res.ok) return show(await res.text());
+        const data = await res.json();
+
+        const labels = ["T-shirts", "Gourds", "Third goodie"];
+        const values = [Number(data.tshirts), Number(data.gourds), Number(data.goodie3)];
+
+        totalsDiv.textContent = `Totals — T-shirts: ${values[0]} | Gourds: ${values[1]} | Third: ${values[2]}`;
+
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [{
+              label: "Total ordered",
+              data: values
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      } catch {
+        show("Network error.");
+      }
+    }
+
+    loadSummary();
+  </script>
+</body>
+</html>

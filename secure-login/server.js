@@ -31,6 +31,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(express.static(path.join(__dirname, "public")));
+
+
 function getcookie(req) {
     var cookies = req.headers.cookie;
     if (cookies) {
@@ -71,7 +74,6 @@ app.use(
   })
 );
 
-app.use(express.static("assets"));
 
 
 // Signup route
@@ -121,8 +123,8 @@ app.post("/signup", async (req, res, next) => {
     const hashed = await bcrypt.hash(password, 10);
 
     await pool.query(
-      `INSERT INTO users (username, password, first_name, last_name)
-       VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO users (username, password_hash, first_name, last_name)
+      VALUES ($1, $2, $3, $4)`,
       [username.trim(), hashed, first_name.trim(), last_name.trim()]
     );
 
@@ -151,7 +153,7 @@ app.post("/signup_admin", async (req, res, next) => {
     const hashed = await bcrypt.hash(password, 10);
 
     await pool.query(
-      `INSERT INTO users (username, password, first_name, last_name, is_admin)
+      `INSERT INTO users (username, password_hash, first_name, last_name, is_admin)
        VALUES ($1, $2, $3, $4, $5)`,
       [username.trim(), hashed, first_name.trim(), last_name.trim(), 1]
     );
@@ -168,28 +170,116 @@ app.post("/signup_admin", async (req, res, next) => {
 
 
 
-// Login route
-app.post("/login", noCache, async (req, res) => {
-  const { username, password } = req.body;
+app.post("/login", noCache, async (req, res, next) => {
+  try {
+    const { username, password } = req.body;
 
-  const result = await pool.query("SELECT * FROM users WHERE username=$1", [
-    username,
-  ]);
+    const result = await pool.query(
+      "SELECT id, username, password_hash, is_admin FROM users WHERE username=$1",
+      [username.trim()]
+    );
+    if (!result.rows.length) return res.status(400).send("User not found");
 
-  if (result.rows.length === 0) return res.status(400).send("User not found");
+    const user = result.rows[0];
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) return res.status(400).send("Invalid password");
 
-  const user = result.rows[0];
+    req.session.regenerate((err) => {
+      if (err) return next(err);
 
-  const isValid = await bcrypt.compare(password, user.password);
-  if (!isValid) return res.status(400).send("Invalid password");
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.is_admin = !!user.is_admin;
 
-  req.session.userId = user.id;
-  req.session.username = user.username;
-  res.send("Logged in successfully!");
-  });
+      req.session.save((err2) => {
+        if (err2) return next(err2);
+        res.send("Logged in successfully!");
+      });
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/dashboard_c", requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "dashboard_c.html"));
+});
+
+app.get("/dashboard_s", requireAuth, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "dashboard_s.html"));
+});
+
+app.get("/order_detail", requireAuth, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "order_detail.html"));
+});
+
+app.post("/api/orders", requireAuth, noCache, async (req, res, next) => {
+  try {
+    const tshirt = Math.max(0, parseInt(req.body.tshirt_qty ?? "0", 10) || 0);
+    const gourd  = Math.max(0, parseInt(req.body.gourd_qty ?? "0", 10) || 0);
+    const goodie3 = Math.max(0, parseInt(req.body.goodie3_qty ?? "0", 10) || 0);
+
+    if (tshirt + gourd + goodie3 === 0) {
+      return res.status(400).send("Please order at least one item.");
+    }
+
+    await pool.query(
+      `INSERT INTO goodies_orders (user_id, tshirt_qty, gourd_qty, goodie3_qty)
+       VALUES ($1, $2, $3, $4)`,
+      [req.session.userId, tshirt, gourd, goodie3]
+    );
+
+    res.status(201).send("Order recorded!");
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/api/orders/summary", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        COALESCE(SUM(tshirt_qty), 0) AS tshirts,
+        COALESCE(SUM(gourd_qty), 0)  AS gourds,
+        COALESCE(SUM(goodie3_qty), 0) AS goodie3
+      FROM goodies_orders
+    `);
+    res.json(rows[0]);
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/api/orders/detail", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        u.first_name,
+        u.last_name,
+        u.username,
+        o.tshirt_qty,
+        o.gourd_qty,
+        o.goodie3_qty,
+        o.created_at
+      FROM goodies_orders o
+      JOIN users u ON u.id = o.user_id
+      ORDER BY LOWER(u.last_name) ASC, LOWER(u.first_name) ASC, o.created_at DESC
+    `);
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/orders", requireAuth, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "orders.html"));
+});
+
+
+
 
 // Protected route
-app.get("/dashboard", requireAuth, requireAdmin, noCache, (req, res) => {
+app.get("/dashboard", requireAuth, noCache, (req, res) => {
   res.sendFile(path.join(__dirname, "protected", "dashboard.html"));
 });
 
@@ -200,6 +290,6 @@ app.post("/logout", (req, res, next) => {
 });
 
 
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+app.listen(80, () => {
+  console.log("Server running on http://localhost:80");
 });

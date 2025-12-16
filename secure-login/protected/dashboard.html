@@ -1,44 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <h1>Welcome, <span id="displayName">...</span>!</h1>
-  <p>Your username: <span id="displayUsername">...</span></p>
-  <button id="logoutBtn">Log out</button>
+  <div class="wrap">
+    <div class="card">
+      <h1>Dashboard</h1>
+      <p class="sub">Commande tes goodies</p>
+
+      <form id="orderForm">
+        <label>T-shirt</label>
+        <input class="input" type="number" min="0" step="1" name="tshirt_qty" value="0">
+
+        <label>Gourde</label>
+        <input class="input" type="number" min="0" step="1" name="gourd_qty" value="0">
+
+        <label>3è goodie</label>
+        <input class="input" type="number" min="0" step="1" name="goodie3_qty" value="0">
+
+        <div id="msg" class="alert" style="display:none;"></div>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="btn_bright" type="submit">Commander</button>
+          <button class="btn_sober" type="button" id="logoutBtn">Déconnexion</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script>
-  document.addEventListener("DOMContentLoaded", async () => {
-    try {
-      const res = await fetch("/api/me", { credentials: "include" });
-      if (!res.ok) {
-        // not authorized or error → send back to login
-        window.location.href = "/login";
-        return;
-      }
-      const me = await res.json();
-      document.getElementById("displayName").textContent =
-        `${me.first_name || ""} ${me.last_name || ""}`.trim();
-      document.getElementById("displayUsername").textContent = me.username;
-    } catch (e) {
-      console.error(e);
-      window.location.href = "/login";
+    const form = document.getElementById("orderForm");
+    const msg = document.getElementById("msg");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    function show(text, ok=false){
+      msg.textContent = text;
+      msg.className = "alert " + (ok ? "ok" : "err");
+      msg.style.display = "block";
     }
 
-    document.getElementById("logoutBtn")?.addEventListener("click", async () => {
-      await fetch("/logout", { method: "POST", credentials: "include" });
-      window.location.href = "/";
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.style.display = "none";
+
+      const payload = {
+        tshirt_qty: form.tshirt_qty.value,
+        gourd_qty: form.gourd_qty.value,
+        goodie3_qty: form.goodie3_qty.value
+      };
+
+      try {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+        if (!res.ok) return show(text || "Order failed");
+        show(text || "Order recorded!", true);
+        form.tshirt_qty.value = 0;
+        form.gourd_qty.value = 0;
+        form.goodie3_qty.value = 0;
+      } catch {
+        show("Network error.");
+      }
     });
-  });
-  </script>
-  <script>
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await fetch("/logout", { method: "POST", credentials: "include" });
-      window.location.href = "/";
-      console.log(getcookie(req)); 
+
+    logoutBtn.addEventListener("click", async () => {
+      await fetch("/logout", { method:"POST", credentials:"include" });
+      location.href = "/login";
     });
   </script>
-  </body>
-  </html>
+</body>
+</html>

@@ -1,45 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signup</title>
+  <meta charset="UTF-8" />
+  <title>Inscription</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <button onclick="window.location.href='/'">Home</button>
-  <button onclick="window.location.href='/signup_admin'">I'm an admin</button>
-  <form id="signupForm">
-    <input type="text" name="username" placeholder="Username" required><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <input name="first_name" required placeholder="First name"><br>
-    <input name="last_name" required placeholder="Last name"><br>
-    <button type="submit">Sign Up</button>
-  </form>
+  <div class="wrap">
+    <div class="card">
+      <h1>Créez votre compte</h1>
+      <p class="sub">Placeholder</p>
+      <div class="row" style="margin-bottom:10px;">
+        <button class="btn_sober" onclick="location.href='/'">⮨ Retour</button>
+        <button class="btn_sober" onclick="location.href='/signup_admin'">Je suis administrateur</button>
+      </div>
+      <form id="signupForm" novalidate>
+        <label for="username">Nom d'utilisateur</label>
+        <input class="input" id="username" name="username" placeholder="Pseudo" autocomplete="username" required />
+        <label for="password">Mot de passe</label>
+        <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="new-password" required />
+        <label for="first_name">Prénom</label>
+        <input class="input" id="first_name" name="first_name" placeholder="Jean" autocomplete="first_name" required />
+        <label for="last_name">Nom</label>
+        <input class="input" id="last_name" name="last_name" placeholder="Thierry" autocomplete="last_name" required />
+        
+        <div id="msg" class="alert" style="display:none;"></div>
+      </form>
+      <div class="row">
+        <button class="btn_bright" type="submit" id="submitBtn" form="signupForm">S'inscrire</button>
+      </div>
+      <p class="footer small">Déjà inscrit ? <a href="/login">Se connecter</a></p>
+    </div>
+  </div>
   <script>
-    async function sendData(url, form) {
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-
-      const text = await res.text();
-      alert(text);
-
-      if (res.ok) {
-        window.location.href = "/dashboard";
-      }
+    const form = document.getElementById("signupForm");
+    const msg = document.getElementById("msg");
+    const submitBtn = document.getElementById("submitBtn");
+    function showMsg(text, ok=false) {
+      msg.textContent = text;
+      msg.className = "alert " + (ok ? "ok" : "err");
+      msg.style.display = "block";
     }
-
-    document.getElementById("signupForm").addEventListener("submit", e => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      sendData("/signup", e.target);
+      msg.style.display = "none";
+      const username = form.username.value.trim();
+      const password = form.password.value;
+      if (!username || !password) {
+        showMsg("Please fill in username and password.");
+        return;
+      }
+      submitBtn.disabled = true;
+      try {
+        const payload = {
+          username,
+          password,
+          first_name: form.first_name?.value?.trim() || "",
+          last_name: form.last_name?.value?.trim() || ""
+        };
+        const res = await fetch("/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        const errText = await res.text().catch(()=>"Signup failed");
+        showMsg(errText || "Signup failed");
+      } catch (err) {
+        showMsg("Network error. Is the server running?");
+      } finally {
+        submitBtn.disabled = false;
+      }
     });
-
-    
   </script>
 </body>
 </html>

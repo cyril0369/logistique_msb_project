@@ -1,15 +1,24 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <link rel="stylesheet" href="styles.css">
-  <meta charset="UTF-8">
-  <title>MSB Project!</title>
+  <meta charset="UTF-8" />
+  <title>MSB</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Welcome</h1>
-  <button onclick="window.location.href='/'">Home</button>
-  <button onclick="window.location.href='/login'">Login</button>
-  <button onclick="window.location.href='/signup'">Sign up</button>
-  <button onclick="window.location.href='/about_us'">About us</button>
+  <div class="wrap">
+    <div class="card">
+      <h1>Bienvenue</h1>
+      <p class="sub">Le site de gestion pour le staff du MSB</p>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn_bright" onclick="location.href='/login'">Se connecter</button>
+        <button class="btn_sober" onclick="location.href='/signup'">S'inscrire</button>
+      </div>
+      <p class="footer small" style="margin-top:14px;">
+        <a href="/about_us">En savoir plus</a>
+      </p>
+    </div>
+  </div>
 </body>
 </html>

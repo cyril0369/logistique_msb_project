@@ -1,46 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signup</title>
+  <meta charset="UTF-8" />
+  <title>Admin Signup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" onerror="this.href='/styles.css'">
 </head>
 <body>
-  <button onclick="window.location.href='/'">Home</button>
-  <button onclick="window.location.href='/login_admin'">I'm an admin</button>
-  <form id="signupForm">
-    <input type="text" name="username" placeholder="Username" required><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <input type="password" name="admin_code" placeholder="Admin Code" required><br>
-    <input name="first_name" required placeholder="First name"><br>
-    <input name="last_name" required placeholder="Last name"><br>
-    <button type="submit">Sign Up</button>
-  </form>
+  <div class="wrap">
+    <div class="card">
+      <h1>Créer un compte administrateur</h1>
+      <p class="sub">En tant qu'administrateur, vous avez accès à diverses fonctions privilégiées - qui vous engagent.</p>
+
+      <div class="row" style="margin-bottom:10px;">
+        <button class="btn_sober" onclick="location.href='/'">⮨ Retour</button>
+        <button class="btn_sober" onclick="location.href='/login'">Se connecter</button>
+        <button class="btn_sober" onclick="location.href=href='/signup'">Non-admin</a>
+      </div>
+
+      <form id="signupForm" novalidate>
+        <label for="username">Username</label>
+        <input class="input" id="username" name="username" placeholder="admin" autocomplete="username" required />
+
+        <label for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="new-password" required />
+
+        <label for="admin_code">Admin code</label>
+        <input class="input" id="admin_code" name="admin_code" type="password" placeholder="Your admin code" required />
+        <div class="row">
+          <div>
+            <label for="first_name">First name</label>
+            <input class="input" id="first_name" name="first_name" placeholder="Jane" />
+          </div>
+          <div>
+            <label for="last_name">Last name</label>
+            <input class="input" id="last_name" name="last_name" placeholder="Doe" />
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn_bright" type="submit" id="submitBtn">Créer un compte administrateur</button>
+
+        </div>
+
+        
+        <div id="msg" class="alert" style="display:none;"></div>
+      </form>
+
+      <p class="footer small">Si votre code admin est bon, vous serez connecté et accéderez au <code>/dashboard</code>.</p>
+    </div>
+  </div>
+
   <script>
-    async function sendData(url, form) {
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
+    const form = document.getElementById("signupForm");
+    const msg = document.getElementById("msg");
+    const submitBtn = document.getElementById("submitBtn");
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-
-      const text = await res.text();
-      alert(text);
-
-      if (res.ok) {
-        window.location.href = "/dashboard";
-      }
+    function showMsg(text, ok=false) {
+      msg.textContent = text;
+      msg.className = "alert " + (ok ? "ok" : "err");
+      msg.style.display = "block";
     }
 
-    document.getElementById("signupForm").addEventListener("submit", e => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      sendData("/signup_admin", e.target);
-    });
+      msg.style.display = "none";
 
-    
+      const username = form.username.value.trim();
+      const password = form.password.value;
+      const admin_code = form.admin_code.value;
+
+      if (!username || !password || !admin_code) {
+        showMsg("Please fill in username, password, and admin code.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+
+      try {
+        const payload = {
+          username,
+          password,
+          admin_code,
+          first_name: form.first_name?.value?.trim() || "",
+          last_name: form.last_name?.value?.trim() || ""
+        };
+
+        const res = await fetch("/signup_admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          window.location.href = "/dashboard";
+          return;
+        }
+
+        const errText = await res.text().catch(() => "Signup failed");
+        showMsg(errText || "Signup failed");
+      } catch (err) {
+        showMsg("Network error. Is the server running?");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
   </script>
 </body>
 </html>

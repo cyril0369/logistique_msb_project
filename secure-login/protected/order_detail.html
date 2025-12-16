@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Order Detail</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .table { width:100%; border-collapse: collapse; }
+    .table th, .table td { padding: 8px; border-bottom: 1px solid var(--border); text-align:left; }
+    .mono { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="widewrap">
+    <div class="card">
+      <div class="row" style="justify-content: space-between;">
+        <h1>All orders</h1>
+        <button class="btn_sober" onclick="location.href='/dashboard_s'">Back</button>
+      </div>
+
+      <table class="table" id="tbl">
+        <thead>
+          <tr>
+            <th>Last name</th>
+            <th>First name</th>
+            <th>T-shirts</th>
+            <th>Gourds</th>
+            <th>Third</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div id="msg" class="alert" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const tbody = document.querySelector("#tbl tbody");
+    const msg = document.getElementById("msg");
+
+    function show(text){
+      msg.textContent = text;
+      msg.className = "alert err";
+      msg.style.display = "block";
+    }
+
+    function fmtTime(iso){
+      try { return new Date(iso).toLocaleString(); }
+      catch { return iso; }
+    }
+
+    async function load(){
+      try {
+        const res = await fetch("/api/orders/detail", { credentials:"include" });
+        if (!res.ok) return show(await res.text());
+        const rows = await res.json();
+
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            <td>${r.last_name ?? ""}</td>
+            <td>${r.first_name ?? ""}</td>
+            <td class="mono">${r.tshirt_qty}</td>
+            <td class="mono">${r.gourd_qty}</td>
+            <td class="mono">${r.goodie3_qty}</td>
+            <td class="mono">${fmtTime(r.created_at)}</td>
+          </tr>
+        `).join("");
+      } catch {
+        show("Network error.");
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
