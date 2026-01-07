@@ -1,3 +1,6 @@
+# --- Node.js ---
+node_modules/
+
 # --- Python ---
 __pycache__/
 *.py[cod]
@@ -48,3 +51,7 @@ reports/
 # --- données volumineuses ---
 data/raw/
 data/tmp/
+
+# node
+node_modules/
+.node_modules/

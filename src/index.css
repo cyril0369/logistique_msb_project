@@ -1,0 +1,237 @@
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* --- Variables de couleurs --- */
+:root {
+  /* Primaires */
+  --BLEU_PRINCIPAL: #3A798D;
+  --BEIGE: #E4C491;
+  
+  /* Neutres */
+  --NOIR: #0D0D0D;
+  --GRIS_FONCE: #4A4A4A;
+  --GRIS_MOYEN: #8C8C8C;
+  --GRIS_CLAIR: #D9D9D9;
+  --BLANC_CASSE: #F5F5F5;
+  
+  /* Secondaires */
+  --TURQUOISE: #50D4BC;
+  --ROUGE: #E16369;
+  --LILA: #BAC5E7;
+  --BLEU_CANARD: #10564F;
+}
+
+/* --- Typographie Titres (Montserrat) --- */
+h1 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 100%;
+  margin: 0;
+}
+
+h2 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 100%;
+  margin: 0;
+}
+
+h3 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 100%;
+  margin: 0;
+}
+
+h4 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 100%;
+  margin: 0;
+}
+
+/* --- Typographie Sous-titres (Oswald) --- */
+.sous-titre-1 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 120%;
+}
+
+.sous-titre-2 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 120%;
+}
+
+/* --- Typographie Textes (Inter) --- */
+.corps-1 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 150%;
+}
+
+.corps-2 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 150%;
+}
+
+.legende {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 140%;
+}
+
+/* --- CSS Reset --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* --- Pages --- */
+.Page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+ 
+/* --- Desktop --- */
+.desktop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 80px;
+  background: var(--BLEU_PRINCIPAL);
+  padding: 16px 24px;
+}
+
+.hamburger-menu {
+  color: var(--BEIGE);
+  width: 28px;
+  height: 28px;
+}
+
+.LogoDesktop {
+  width: 48px;
+  height: 48px;
+}
+
+.icon-connextion {
+  color: var(--BEIGE);
+  width: 28px;
+  height: 28px;
+}
+
+.sidebare {
+  color: var(--BEIGE);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--BLEU_PRINCIPAL);
+  position: absolute;
+  width: 320px;
+  height: 944px;
+  top: 80px;
+  gap: 16px;
+  opacity: 1;
+  padding: 32px;
+}
+
+.sidebare.Hidden {
+  display: none;
+}
+
+/* --- Formulaire de connexion --- */
+.FormulaireConnexion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 500px;
+  height: 450px;
+  padding: 16px;
+  gap: 12px;
+  border-radius: 8px;
+}
+
+.titre-sous-titre h1 {
+  color: var(--BLEU_PRINCIPAL);
+}
+
+.FormulaireConnexion div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.FormulaireConnexion input {
+  width: 400px;
+  height: 40px;
+  border-radius: 12px;
+  border: 0;
+  background: var(--GRIS_CLAIR);
+}
+
+.champ-de-saisie {
+  width: 400px;
+  align-items: flex-start !important;
+}
+
+.champ-de-saisie .corps-2 {
+  margin-bottom: 4px;
+  margin-top: 8px;
+}
+
+.boutton-mdp-oublier {
+  width: 215px;
+  height: 126px;
+  gap: 24px;
+  opacity: 1;
+  padding: 12px;
+}
+
+.se-connecter {
+  color: var(--BEIGE);
+  background-color: var(--BLEU_PRINCIPAL);
+  width: 206px;
+  height: 52px;
+  padding-right: 28px;
+  padding-left: 28px;
+  gap: 10px;
+  opacity: 1;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+}
+
+.se-connecter h4 {
+  white-space: nowrap;
+}
