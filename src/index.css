@@ -119,8 +119,10 @@ h4 {
 main {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   flex: 1;
+  overflow-y: auto;
+  padding: 32px 16px;
 }
  
 /* --- Desktop --- */
@@ -169,14 +171,14 @@ main {
 }
 
 /* --- Formulaire de connexion --- */
-.FormulaireConnexion {
+.Formulaire {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 500px;
-  height: 450px;
-  padding: 16px;
+  width: 100%;
+  max-width: 500px;
+  padding: 24px;
   gap: 12px;
   border-radius: 8px;
 }
@@ -185,14 +187,14 @@ main {
   color: var(--BLEU_PRINCIPAL);
 }
 
-.FormulaireConnexion div {
+.Formulaire .block {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
 
-.FormulaireConnexion input {
+.Formulaire .input-text {
   width: 400px;
   height: 40px;
   border-radius: 12px;
@@ -216,6 +218,33 @@ main {
   gap: 24px;
   opacity: 1;
   padding: 12px;
+}
+
+.cases-a-cocher {
+  display: flex;
+  width: 400px;
+  height: 24px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.case-a-cocher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 88px;
+  height: 24px;
+  gap: 12px;
+}
+
+.case-a-cocher p {
+    white-space: nowrap;
+}
+
+.cases {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
 }
 
 .se-connecter {
