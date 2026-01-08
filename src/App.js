@@ -3,6 +3,7 @@ import Acceuil from "./pages/acceuil";
 import AcceuilConnexion from "./pages/AcceuilConnexion";
 import AcceuilInscriprion from "./pages/AcceuilInscriprion";
 import AcceuilInscriprionTeamMSB from "./pages/AcceuilInscriprionTeamMSB.jsx";
+import AcceuilInscriprionStaff from './pages/AcceuilInscriprionStaff.jsx';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/acceuil/connexion" element={<AcceuilConnexion />} />
           <Route path="/acceuil/inscription" element={<AcceuilInscriprion />} />
           <Route path="/acceuil/inscription/team" element={<AcceuilInscriprionTeamMSB />} />
+          <Route path="/acceuil/inscription/staff" element={<AcceuilInscriprionStaff />} />
         </Routes>
       </div>
     </Router>

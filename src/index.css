@@ -183,6 +183,10 @@ main {
   border-radius: 8px;
 }
 
+.Formulaire h1 {
+  text-align: center;
+}
+
 .titre-sous-titre h1 {
   color: var(--BLEU_PRINCIPAL);
 }
