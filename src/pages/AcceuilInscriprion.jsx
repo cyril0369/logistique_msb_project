@@ -1,7 +1,7 @@
 import Desktop from "../components/desktop.jsx";
 import FormulaireInscription from "../components/FormulaireInscription.jsx";
 
-export default function AcceuilConnexion() {
+export default function AcceuilInscription() {
     return (
         <div className="Page">
             <Desktop />
