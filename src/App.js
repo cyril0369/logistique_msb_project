@@ -5,6 +5,7 @@ import AcceuilInscriprion from "./pages/AcceuilInscriprion";
 import AcceuilInscriprionTeamMSB from "./pages/AcceuilInscriprionTeamMSB.jsx";
 import AcceuilInscriprionStaff from './pages/AcceuilInscriprionStaff.jsx';
 import AcceuilInscriprionParticipant from './pages/AcceuilInscriprionParticipant.jsx';
+import MonPlanning from './pages/MonPlanning.jsx';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/acceuil/inscription/team" element={<AcceuilInscriprionTeamMSB />} />
           <Route path="/acceuil/inscription/staff" element={<AcceuilInscriprionStaff />} />
           <Route path="/acceuil/inscription/participant" element={<AcceuilInscriprionParticipant />} />
+          <Route path="/monplanning" element={<MonPlanning />} />
         </Routes>
       </div>
     </Router>

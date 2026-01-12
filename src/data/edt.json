@@ -1,0 +1,44 @@
+{
+  "vendredi": {
+    "tache1": {
+      "heure_debut": "09:00",
+      "heure_fin": "11:00"
+    },
+    "tache2": {
+      "heure_debut": "11:30",
+      "heure_fin": "13:00"
+    },
+    "tache3": {
+      "heure_debut": "14:00",
+      "heure_fin": "17:00"
+    }
+  },
+  "samedi": {
+    "tache1": {
+      "heure_debut": "10:00",
+      "heure_fin": "12:00"
+    },
+    "tache2": {
+      "heure_debut": "13:00",
+      "heure_fin": "15:00"
+    },
+    "tache3": {
+      "heure_debut": "16:00",
+      "heure_fin": "18:00"
+    }
+  },
+  "dimanche": {
+    "tache1": {
+      "heure_debut": "09:30",
+      "heure_fin": "11:30"
+    },
+    "tache2": {
+      "heure_debut": "12:30",
+      "heure_fin": "14:00"
+    },
+    "tache3": {
+      "heure_debut": "15:00",
+      "heure_fin": "17:00"
+    }
+  }
+}
