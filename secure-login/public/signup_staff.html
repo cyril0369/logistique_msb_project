@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Inscription Team MSB - MSB Logistique</title>
+  <title>Inscription Staff - MSB Logistique</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles-new.css">
   <style>
@@ -47,7 +47,7 @@
     <main>
       <div class="Formulaire">
         <div class="titre-sous-titre block">
-          <h1>Team MSB</h1>
+          <h1>Inscription Staff</h1>
           <p class="sous-titre-1" onclick="location.href='/signup'">Retour à l'inscription normale</p>
         </div>
 
@@ -67,7 +67,7 @@
             <div class="form-row">
               <div class="input-group">
                 <label for="email">Email *</label>
-                <input class="input" id="email" name="email" type="email" placeholder="admin@msb.fr" autocomplete="email" required />
+                <input class="input" id="email" name="email" type="email" placeholder="staff@msb.fr" autocomplete="email" required />
               </div>
               <div class="input-group">
                 <label for="phone">Téléphone</label>
@@ -78,7 +78,7 @@
             <div class="form-row">
               <div class="input-group">
                 <label for="username">Nom d'utilisateur *</label>
-                <input class="input" id="username" name="username" placeholder="admin" autocomplete="username" required />
+                <input class="input" id="username" name="username" placeholder="staff" autocomplete="username" required />
               </div>
               <div class="input-group">
                 <label for="password">Mot de passe *</label>
@@ -88,8 +88,37 @@
 
             <div class="form-row" style="grid-template-columns: 1fr;">
               <div class="input-group">
-                <label for="admin_code">Code Administrateur *</label>
-                <input class="input" id="admin_code" name="admin_code" type="password" placeholder="Votre code admin" required />
+                <label for="staff_code">Code Staff *</label>
+                <input class="input" id="staff_code" name="staff_code" type="password" placeholder="Votre code staff" required />
+              </div>
+            </div>
+          </div>
+
+          <div class="champ-de-saisie block">
+            <h2 class="sous-titre-1">Informations Staff</h2>
+            <div class="form-row">
+              <div class="input-group">
+                <label>Type de staff souhaité</label>
+                <div style="display:flex; gap:12px; align-items:center;">
+                  <label><input type="radio" name="staff_type" value="mixte"> Mixte</label>
+                  <label><input type="radio" name="staff_type" value="jour"> Jour</label>
+                  <label><input type="radio" name="staff_type" value="nuit"> Nuit</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="champ-de-saisie block">
+            <h2 class="sous-titre-1">Questions Staff</h2>
+            <div class="form-row" style="grid-template-columns: 1fr;">
+              <div class="input-group">
+                <label><input type="checkbox" id="tireuse" name="tireuse"> Tu sais te servir d’une tireuse ?</label>
+                <label><input type="checkbox" id="cuisine" name="cuisine"> Tu es à l’aise en cuisine ?</label>
+                <label><input type="checkbox" id="arbitre_beach_rugby" name="arbitre_beach_rugby"> Tu es à l’aise pour arbitrer du Beach Rugby ?</label>
+                <label><input type="checkbox" id="arbitre_beach_soccer" name="arbitre_beach_soccer"> Tu es à l’aise pour arbitrer du Beach Soccer ?</label>
+                <label><input type="checkbox" id="arbitre_beach_volley" name="arbitre_beach_volley"> Tu es à l’aise pour arbitrer du Beach Volley ?</label>
+                <label><input type="checkbox" id="arbitre_dodgeball" name="arbitre_dodgeball"> Tu es à l’aise pour arbitrer du Dodgeball ?</label>
+                <label><input type="checkbox" id="arbitre_handball" name="arbitre_handball"> Tu es à l’aise pour arbitrer du Handball ?</label>
               </div>
             </div>
           </div>
@@ -124,11 +153,11 @@
 
       const username = form.username.value.trim();
       const password = form.password.value;
-      const admin_code = form.admin_code.value;
+      const staff_code = form.staff_code.value;
       const email = form.email.value.trim();
 
-      if (!username || !password || !admin_code || !email) {
-        showMsg("Veuillez remplir le nom d'utilisateur, l'email, le mot de passe et le code administrateur.");
+      if (!username || !password || !staff_code || !email) {
+        showMsg("Veuillez remplir le nom d'utilisateur, l'email, le mot de passe et le code staff.");
         return;
       }
 
@@ -138,14 +167,22 @@
         const payload = {
           username,
           password,
-          admin_code,
+          staff_code,
           email,
           phone: form.phone?.value?.trim() || "",
           first_name: form.first_name?.value?.trim() || "",
-          last_name: form.last_name?.value?.trim() || ""
+          last_name: form.last_name?.value?.trim() || "",
+          staff_type: (document.querySelector('input[name="staff_type"]:checked')?.value) || "",
+          tireuse: !!form.tireuse?.checked,
+          cuisine: !!form.cuisine?.checked,
+          arbitre_beach_rugby: !!form.arbitre_beach_rugby?.checked,
+          arbitre_beach_soccer: !!form.arbitre_beach_soccer?.checked,
+          arbitre_beach_volley: !!form.arbitre_beach_volley?.checked,
+          arbitre_dodgeball: !!form.arbitre_dodgeball?.checked,
+          arbitre_handball: !!form.arbitre_handball?.checked
         };
 
-        const res = await fetch("/signup_admin", {
+        const res = await fetch("/signup_staff", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

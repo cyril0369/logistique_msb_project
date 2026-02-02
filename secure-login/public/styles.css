@@ -1,16 +1,14 @@
 :root{
-  /* Bright, warm, sober LIGHT palette */
-  --bg: #e5d1bf;        /* warm sand */
-  --card: #fff7ee;      /* slightly lighter panel */
-  --muted: #6b5b4f;     /* warm muted text */
+  --bg: #e5d1bf;
+  --card: #fff7ee;      /* panneau plus clair */
+  --muted: #6b5b4f;     /* texte discret */
   --sober: #f9efe5;
   --bright: #f85528;
-  --ok: #1f7a4d;        /* deeper green for contrast on light */
-  --warn: #b85a1b;      /* burnt orange */
+  --ok: #1f7a4d;
+  --warn: #b85a1b;
   --border: #e6d6c5;
   --link: #f85528;
 
-  /* Optional helpers */
   --panel: #fbf2e8;
   --btn-bg: #f3e4d7;
   --btn-hover: #ecd7c6;
@@ -22,7 +20,7 @@
 html, body{
   margin:0; padding:0;
   background: var(--bg);
-  color: #050000; /* dark text */
+  color: #050000;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
     Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }

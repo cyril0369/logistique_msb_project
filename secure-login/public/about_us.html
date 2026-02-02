@@ -2,19 +2,41 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>À propos de nous</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>À propos - MSB Logistique</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/styles-new.css" />
 </head>
 <body>
-    <div class="wrap">
-        <div class="card">
-            <h1>À propos de nous</h1>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, urna eu tincidunt consectetur, nisi nisl aliquam enim, eget facilisis erat sapien eu massa. Nullam ac erat vitae enim cursus dictum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Suspendisse potenti. Etiam euismod, justo at facilisis cursus, enim erat dictum urna, nec dictum enim enim nec enim.</p>
-            <p>
-            Mauris non tempor quam, et lacinia sapien. Mauris accumsan eros eget libero posuere vulputate. Etiam elit elit, elementum sed varius at, adipiscing vitae est. Sed nec felis pellentesque, lacinia dui sed, ultricies sapien. Pellentesque orci lectus, consectetur vel posuere posuere, rutrum eu ipsum. Aliquam erat volutpat.
-            </p>
-        </div>
-        
+    <div class="Page">
+        <header class="desktop">
+            <button class="hamburger-btn" type="button" aria-label="Menu" onclick="toggleHamburger(this)">
+                <img class="hamburger-icon icon-menu" src="/assets/icon-menu.svg" alt="" aria-hidden="false" />
+                <img class="hamburger-icon icon-close" src="/assets/icon-close.svg" alt="" aria-hidden="true" />
+            </button>
+            <img class="LogoDesktop" src="/logo.png" alt="MSB Logo" />
+            <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/login'" />
+        </header>
+        <main>
+            <div class="Formulaire" style="max-width: 800px;">
+                <div class="titre-sous-titre block">
+                    <h1>À propos de nous</h1>
+                </div>
+                <div class="champ-de-saisie block" style="max-width: 100%;">
+                    <p class="corps-1" style="margin-bottom: 16px;">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, urna eu tincidunt consectetur, nisi nisl aliquam enim, eget facilisis erat sapien eu massa. Nullam ac erat vitae enim cursus dictum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Suspendisse potenti. Etiam euismod, justo at facilisis cursus, enim erat dictum urna, nec dictum enim enim nec enim.
+                    </p>
+                    <p class="corps-1">
+                        Mauris non tempor quam, et lacinia sapien. Mauris accumsan eros eget libero posuere vulputate. Etiam elit elit, elementum sed varius at, adipiscing vitae est. Sed nec felis pellentesque, lacinia dui sed, ultricies sapien. Pellentesque orci lectus, consectetur vel posuere posuere, rutrum eu ipsum. Aliquam erat volutpat.
+                    </p>
+                </div>
+                <div class="boutton-mdp-oublier block" style="margin-top: 24px;">
+                    <button class="se-connecter" onclick="location.href='/'">
+                        <h4>Retour à l'accueil</h4>
+                    </button>
+                </div>
+            </div>
+        </main>
     </div>
+    <script src="/hamburger.js"></script>
 </body>
 </html>

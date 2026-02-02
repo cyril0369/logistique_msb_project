@@ -14,9 +14,11 @@
     "bcryptjs": "^3.0.2",
     "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
+    "nodemailer": "^6.10.1",
     "pg": "^8.16.3",
     "psql": "^0.0.1"
   }

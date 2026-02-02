@@ -2,36 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Inscription</title>
+  <title>Inscription - MSB Logistique</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles-new.css">
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Créez votre compte</h1>
-      <p class="sub">Placeholder</p>
-      <div class="row" style="margin-bottom:10px;">
-        <button class="btn_sober" onclick="location.href='/'">⮨ Retour</button>
-        <button class="btn_sober" onclick="location.href='/signup_admin'">Je suis administrateur</button>
+  <div class="Page">
+    <header class="desktop">
+      <button class="hamburger-btn" type="button" aria-label="Menu" onclick="toggleHamburger(this)">
+        <img class="hamburger-icon icon-menu" src="/assets/icon-menu.svg" alt="" aria-hidden="false" />
+        <img class="hamburger-icon icon-close" src="/assets/icon-close.svg" alt="" aria-hidden="true" />
+      </button>
+      <img class="LogoDesktop" src="/logo.png" alt="MSB Logo" />
+      <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/login'" />
+    </header>
+    <main>
+      <div class="Formulaire">
+        <div class="titre-sous-titre block">
+          <h1>Inscription</h1>
+          <p class="sous-titre-1" onclick="location.href='/login'">Déjà inscrit ? Se connecter</p>
+        </div>
+
+        <form id="signupForm" novalidate>
+          <div class="champ-de-saisie block">
+            <label for="first_name">Prénom *</label>
+            <input class="input" id="first_name" name="first_name" placeholder="Jean" autocomplete="given-name" required />
+            
+            <label for="last_name">Nom *</label>
+            <input class="input" id="last_name" name="last_name" placeholder="Thierry" autocomplete="family-name" required />
+            
+            <label for="gender">Sexe</label>
+            <select class="input" id="gender" name="gender">
+              <option value="">Sélectionner...</option>
+              <option value="M">Homme</option>
+              <option value="F">Femme</option>
+              <option value="other">Autre</option>
+            </select>
+            
+            <label for="email">Email *</label>
+            <input class="input" id="email" name="email" type="email" placeholder="votre@email.com" autocomplete="email" required />
+            
+            <label for="phone">Téléphone</label>
+            <input class="input" id="phone" name="phone" type="tel" placeholder="+33 6 12 34 56 78" autocomplete="tel" />
+            
+            <label for="username">Nom d'utilisateur *</label>
+            <input class="input" id="username" name="username" placeholder="Pseudo" autocomplete="username" required />
+            
+            <label for="password">Mot de passe *</label>
+            <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="new-password" required />
+
+            <div style="margin-top:16px; width:200%;">
+              
+              <button class="btn_sober" type="button" onclick="location.href='/signup_staff'" style="width: 48%; margin: 2px;">Staff</button>
+            </div>
+            <div style="margin-top:16px; width:200%;">
+              <button class="btn_sober" type="button" onclick="location.href='/signup_admin'" style="width: 48%; margin: 2px;">Team MSB</button>
+            </div>
+          
+
+          </div>
+
+          <div id="msg" class="alert" style="display:none;"></div>
+
+          <div class="boutton-mdp-oublier block">
+            <button class="se-connecter" type="submit" id="submitBtn">
+              <h4>S'inscrire</h4>
+            </button>
+            <p class="corps-2">* Champs obligatoires</p>
+          </div>
+        </form>
       </div>
-      <form id="signupForm" novalidate>
-        <label for="username">Nom d'utilisateur</label>
-        <input class="input" id="username" name="username" placeholder="Pseudo" autocomplete="username" required />
-        <label for="password">Mot de passe</label>
-        <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="new-password" required />
-        <label for="first_name">Prénom</label>
-        <input class="input" id="first_name" name="first_name" placeholder="Jean" autocomplete="first_name" required />
-        <label for="last_name">Nom</label>
-        <input class="input" id="last_name" name="last_name" placeholder="Thierry" autocomplete="last_name" required />
-        
-        <div id="msg" class="alert" style="display:none;"></div>
-      </form>
-      <div class="row">
-        <button class="btn_bright" type="submit" id="submitBtn" form="signupForm">S'inscrire</button>
-      </div>
-      <p class="footer small">Déjà inscrit ? <a href="/login">Se connecter</a></p>
-    </div>
+    </main>
   </div>
   <script>
     const form = document.getElementById("signupForm");
@@ -47,8 +88,9 @@
       msg.style.display = "none";
       const username = form.username.value.trim();
       const password = form.password.value;
-      if (!username || !password) {
-        showMsg("Please fill in username and password.");
+      const email = form.email.value.trim();
+      if (!username || !password || !email) {
+        showMsg("Veuillez remplir le nom d'utilisateur, le mot de passe et l'email.");
         return;
       }
       submitBtn.disabled = true;
@@ -57,7 +99,10 @@
           username,
           password,
           first_name: form.first_name?.value?.trim() || "",
-          last_name: form.last_name?.value?.trim() || ""
+          last_name: form.last_name?.value?.trim() || "",
+          email: email,
+          phone: form.phone?.value?.trim() || "",
+          gender: form.gender?.value || ""
         };
         const res = await fetch("/signup", {
           method: "POST",
@@ -66,17 +111,19 @@
           body: JSON.stringify(payload)
         });
         if (res.ok) {
-          window.location.href = "/dashboard";
+          const data = await res.json();
+          window.location.href = data.redirect || "/dashboard";
           return;
         }
-        const errText = await res.text().catch(()=>"Signup failed");
-        showMsg(errText || "Signup failed");
+        const errText = await res.text().catch(()=>"Inscription échouée");
+        showMsg(errText || "Inscription échouée");
       } catch (err) {
-        showMsg("Network error. Is the server running?");
+        showMsg("Erreur réseau. Le serveur est-il démarré ?");
       } finally {
         submitBtn.disabled = false;
       }
     });
   </script>
+  <script src="/hamburger.js"></script>
 </body>
 </html>

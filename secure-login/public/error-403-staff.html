@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MSB Logistique Project</title>
+  <title>Accès Interdit - MSB Logistique</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles-new.css" />
 </head>
@@ -14,23 +14,21 @@
         <img class="hamburger-icon icon-close" src="/assets/icon-close.svg" alt="" aria-hidden="true" />
       </button>
       <img class="LogoDesktop" src="/logo.png" alt="MSB Logo" />
-      <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/login'" />
+      <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/dashboard'" />
     </header>
     <main>
       <div class="Formulaire">
         <div class="titre-sous-titre block">
-          <h1>Bienvenue</h1>
-          <p class="sous-titre-1" style="cursor: default;">Le site de gestion pour le staff du MSB</p>
+          <h1 style="color: #ff6b6b;">Accès Interdit</h1>
+          <p class="sous-titre-1" style="cursor: default;">Vous n'avez pas les permissions nécessaires pour accéder à cette page.</p>
+          <p class="sous-titre-2" style="cursor: default; margin-top: 12px;">Cette section est réservée au staff.</p>
         </div>
         
         <div class="boutton-mdp-oublier block" style="gap: 16px; margin-top: 24px;">
-          <button class="se-connecter" onclick="location.href='/signup'">
-            <h4>S'inscrire</h4>
+          <button class="se-connecter" onclick="location.href='/dashboard'">
+            <h4>Retour au tableau de bord</h4>
           </button>
-          <button class="se-connecter" onclick="location.href='/login'">
-            <h4>Se connecter</h4>
-          </button>
-          <p class="sous-titre-2" onclick="location.href='/about_us'">En savoir plus</p>
+          <p class="sous-titre-2" onclick="location.href='/'">Retour à l'accueil</p>
         </div>
       </div>
     </main>

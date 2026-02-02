@@ -2,36 +2,71 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Login</title>
+  <title>Connexion - MSB Logistique</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/style.css" onerror="this.href='styles.css'">
+  <link rel="stylesheet" href="/styles-new.css">
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Welcome back</h1>
-      <p class="sub">Connectez-vous pour accéder au dashboard</p>
+  <div class="Page">
+    <header class="desktop">
+      <button class="hamburger-btn" type="button" aria-label="Menu" onclick="toggleHamburger(this)">
+        <img class="hamburger-icon icon-menu" src="/assets/icon-menu.svg" alt="" aria-hidden="false" />
+        <img class="hamburger-icon icon-close" src="/assets/icon-close.svg" alt="" aria-hidden="true" />
+      </button>
+      <img class="LogoDesktop" src="/logo.png" alt="MSB Logo" />
+      <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" />
+    </header>
+    <main>
+      <div class="Formulaire">
+        <div class="titre-sous-titre block">
+          <h1>Connexion</h1>
+          <p class="sous-titre-1" onclick="location.href='/signup'">Nouveau sur ce site ? S'inscrire</p>
+        </div>
 
-      <div class="row" style="margin-bottom:10px;">
-        <button class="btn_sober" onclick="location.href='/'">⮨ Retour</button>
-        <button class="btn_sober" onclick="location.href='signup'">Créer un compte</button>
+        <form id="loginForm" novalidate>
+          <div class="champ-de-saisie block">
+            <label for="email">E-mail</label>
+            <input class="input" id="email" name="email" type="email" placeholder="votre@email.com" autocomplete="email" required />
+
+            <label for="password">Mot de passe</label>
+            <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+          </div>
+
+          <div id="msg" class="alert" style="display:none;"></div>
+
+          <div class="boutton-mdp-oublier block">
+            <button class="se-connecter" type="submit" id="submitBtn">
+              <h4>Se connecter</h4>
+            </button>
+            <p class="sous-titre-2" style="cursor: pointer;" onclick="openForgotModal()">Mot de passe oublié ?</p>
+          </div>
+        </form>
       </div>
+    </main>
+  </div>
 
-      <form id="loginForm" novalidate>
-        <label for="username">Nom d'utilisateur</label>
-        <input class="input" id="username" name="username" placeholder="username" autocomplete="username" required />
+  <div id="forgotModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 32px; border-radius: 8px; max-width: 500px; width: 90%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2>Mot de passe oublié</h2>
+        <button onclick="closeForgotModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--GRIS_FONCE);">×</button>
+      </div>
+      
+      <form id="forgotForm">
+        <div class="champ-de-saisie block">
+          <label for="forgot-email">Adresse email</label>
+          <input class="input" type="email" id="forgot-email" name="email" required />
+        </div>
 
-        <label for="password">Mot de passe</label>
-        <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+        <div id="forgotMsg" class="alert" style="display:none;"></div>
 
-        
-        <div id="msg" class="alert" style="display:none;"></div>
+        <div class="boutton-mdp-oublier block" style="margin-top: 24px;">
+          <button type="submit" class="se-connecter">
+            <h4>Envoyer</h4>
+          </button>
+          <button type="button" class="btn_sober" onclick="closeForgotModal()">Annuler</button>
+        </div>
       </form>
-      <div class="row" style="margin-bottom:10px;">
-        <button class="btn_bright" type="submit" id="submitBtn" form="loginForm">Connexion</button>
-      </div>
-
-      <p class="footer small"></p>
     </div>
   </div>
 
@@ -39,6 +74,9 @@
     const form = document.getElementById("loginForm");
     const msg = document.getElementById("msg");
     const submitBtn = document.getElementById("submitBtn");
+    const forgotModal = document.getElementById("forgotModal");
+    const forgotForm = document.getElementById("forgotForm");
+    const forgotMsg = document.getElementById("forgotMsg");
 
     function showMsg(text, ok=false) {
       msg.textContent = text;
@@ -46,13 +84,58 @@
       msg.style.display = "block";
     }
 
+    function showForgotMsg(text, ok=false) {
+      forgotMsg.textContent = text;
+      forgotMsg.className = "alert " + (ok ? "ok" : "err");
+      forgotMsg.style.display = "block";
+    }
+
+    function openForgotModal() {
+      forgotModal.style.display = "flex";
+      forgotForm.reset();
+      forgotMsg.style.display = "none";
+    }
+
+    function closeForgotModal() {
+      forgotModal.style.display = "none";
+    }
+
+    forgotForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      forgotMsg.style.display = "none";
+      
+      const email = forgotForm.email.value.trim();
+      if (!email) {
+        showForgotMsg("Veuillez entrer votre email.");
+        return;
+      }
+
+      try {
+        const res = await fetch("/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+
+        if (res.ok) {
+          showForgotMsg("Un email a été envoyé avec vos informations de connexion.", true);
+          setTimeout(() => closeForgotModal(), 3000);
+        } else {
+          const errText = await res.text();
+          showForgotMsg(errText || "Erreur lors de l'envoi");
+        }
+      } catch (err) {
+        showForgotMsg("Erreur réseau");
+      }
+    });
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       msg.style.display = "none";
-      const username = form.username.value.trim();
+      const email = form.email.value.trim();
       const password = form.password.value;
-      if (!username || !password) {
-        showMsg("Please fill in both fields.");
+      if (!email || !password) {
+        showMsg("Veuillez remplir les deux champs.");
         return;
       }
 
@@ -63,21 +146,22 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ email, password })
         });
 
         if (res.ok) {
           window.location.href = "/dashboard";
           return;
         }
-        const errText = await res.text().catch(()=>"Login failed");
-        showMsg(errText || "Login failed");
+        const errText = await res.text().catch(()=>"Connexion échouée");
+        showMsg(errText || "Connexion échouée");
       } catch (err) {
-        showMsg("Network error. Are you on the same LAN and is the server running?");
+        showMsg("Erreur réseau. Le serveur est-il démarré ?");
       } finally {
         submitBtn.disabled = false;
       }
     });
   </script>
+  <script src="/hamburger.js"></script>
 </body>
 </html>

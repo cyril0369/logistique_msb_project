@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Commander des Goodies - MSB Logistique</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles-new.css">
+</head>
+<body>
+  <div class="Page">
+    <header class="desktop">
+      <button class="hamburger-btn" type="button" aria-label="Menu" onclick="toggleHamburger(this)">
+        <img class="hamburger-icon icon-menu" src="/assets/icon-menu.svg" alt="" aria-hidden="false" />
+        <img class="hamburger-icon icon-close" src="/assets/icon-close.svg" alt="" aria-hidden="true" />
+      </button>
+      <img class="LogoDesktop" src="/logo.png" alt="MSB Logo" />
+      <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/dashboard'" />
+    </header>
+    <main>
+      <div class="Formulaire">
+        <div class="titre-sous-titre block">
+          <h1>Commander des Goodies</h1>
+          <p class="sous-titre-1" style="cursor: default;">Sélectionnez les quantités souhaitées</p>
+        </div>
+
+        <div id="msg" class="alert err" style="display:none;"></div>
+
+        <form id="orderForm">
+          <div class="champ-de-saisie block">
+            <label for="tshirt_qty">T-shirts</label>
+            <input class="input" type="number" id="tshirt_qty" name="tshirt_qty" min="0" value="0" />
+          </div>
+
+          <div class="champ-de-saisie block">
+            <label for="gourd_qty">Gourdes</label>
+            <input class="input" type="number" id="gourd_qty" name="gourd_qty" min="0" value="0" />
+          </div>
+
+          <div class="champ-de-saisie block">
+            <label for="goodie3_qty">Goodie 3</label>
+            <input class="input" type="number" id="goodie3_qty" name="goodie3_qty" min="0" value="0" />
+          </div>
+
+          <div class="boutton-mdp-oublier block" style="gap: 16px; margin-top: 24px;">
+            <button type="submit" class="se-connecter">
+              <h4>Valider la commande</h4>
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById("orderForm");
+    const msg = document.getElementById("msg");
+
+    function show(text, ok=false){
+      msg.textContent = text;
+      msg.className = "alert " + (ok ? "ok" : "err");
+      msg.style.display = "block";
+      setTimeout(() => msg.style.display = "none", 5000);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.style.display = "none";
+
+      const payload = {
+        tshirt_qty: form.tshirt_qty.value,
+        gourd_qty: form.gourd_qty.value,
+        goodie3_qty: form.goodie3_qty.value
+      };
+
+      try {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+        if (!res.ok) return show(text || "Commande échouée");
+        show(text || "Commande enregistrée !", true);
+        form.tshirt_qty.value = 0;
+        form.gourd_qty.value = 0;
+        form.goodie3_qty.value = 0;
+      } catch {
+        show("Erreur réseau.");
+      }
+    });
+  </script>
+  <script src="/hamburger.js"></script>
+</body>
+</html>

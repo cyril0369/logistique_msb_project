@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestion Utilisateurs - MSB Logistique</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles-new.css" />
+  <style>
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .users-table thead {
+      background: var(--BLEU_PRINCIPAL);
+    }
+    .users-table th {
+      padding: 16px;
+      text-align: left;
+      color: white;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .users-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #E4E4E7;
+      color: var(--GRIS_FONCE);
+    }
+    .users-table tbody tr:hover {
+      background: var(--BEIGE_CLAIR);
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-admin {
+      background: var(--ROUGE);
+      color: white;
+    }
+    .status-staff {
+      background: var(--TURQUOISE);
+      color: var(--NOIR);
+    }
+    .status-user {
+      background: var(--LILA);
+      color: var(--NOIR);
+    }
+    .btn-delete {
+      background: var(--ROUGE);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      transition: opacity 0.2s;
+    }
+    .btn-delete:hover {
+      opacity: 0.8;
+    }
+    .btn-delete:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="Page">
+    <header class="desktop">
+      <button class="hamburger-btn" type="button" aria-label="Menu" onclick="toggleHamburger(this)">
+        <img class="hamburger-icon icon-menu" src="/assets/icon-menu.svg" alt="" aria-hidden="false" />
+        <img class="hamburger-icon icon-close" src="/assets/icon-close.svg" alt="" aria-hidden="true" />
+      </button>
+      <img class="LogoDesktop" src="/logo.png" alt="MSB Logo" />
+      <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/dashboard'" />
+    </header>
+    <main>
+      <div class="Formulaire" style="max-width: 1200px;">
+        <div class="titre-sous-titre block">
+          <h1>Gestion des Utilisateurs</h1>
+          <p class="sous-titre-1" style="cursor: default;">Administrez les comptes utilisateurs</p>
+        </div>
+        
+        <div id="msg" class="alert err" style="display:none;"></div>
+        
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Prénom</th>
+              <th>Email</th>
+              <th>Nom d'utilisateur</th>
+              <th>Statut</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody">
+            <tr><td colspan="6" style="text-align:center; padding: 24px;">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+  
+  <script>
+    const tbody = document.getElementById("usersBody");
+    const msg = document.getElementById("msg");
+
+    function showMsg(text, ok = false) {
+      msg.textContent = text;
+      msg.className = "alert " + (ok ? "ok" : "err");
+      msg.style.display = "block";
+      setTimeout(() => msg.style.display = "none", 5000);
+    }
+
+    function getStatusBadge(user) {
+      if (user.is_admin) return '<span class="status-badge status-admin">Admin</span>';
+      if (user.is_staff) return '<span class="status-badge status-staff">Staff</span>';
+      return '<span class="status-badge status-user">Utilisateur</span>';
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch("/api/users", { credentials: "include" });
+        if (!res.ok) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--ROUGE);">Erreur de chargement</td></tr>';
+          return;
+        }
+        const users = await res.json();
+        
+        if (users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">Aucun utilisateur trouvé</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = users.map(user => `
+          <tr data-user-id="${user.id}">
+            <td>${user.last_name || '-'}</td>
+            <td>${user.first_name || '-'}</td>
+            <td>${user.email || '-'}</td>
+            <td>${user.username}</td>
+            <td>${getStatusBadge(user)}</td>
+            <td>
+              <button class="btn-delete" onclick="deleteUser(${user.id}, '${user.username}')">
+                Supprimer
+              </button>
+            </td>
+          </tr>
+        `).join("");
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--ROUGE);">Erreur réseau</td></tr>';
+      }
+    }
+
+    async function deleteUser(userId, username) {
+      if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" ?`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/users/${userId}`, {
+          method: "DELETE",
+          credentials: "include"
+        });
+
+        if (res.ok) {
+          showMsg("Utilisateur supprimé avec succès", true);
+          loadUsers();
+        } else {
+          const errText = await res.text();
+          showMsg(errText || "Échec de la suppression");
+        }
+      } catch (err) {
+        showMsg("Erreur réseau");
+      }
+    }
+
+    loadUsers();
+  </script>
+  <script src="/hamburger.js"></script>
+</body>
+</html>

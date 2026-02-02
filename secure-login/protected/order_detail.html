@@ -1,40 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Order Detail</title>
+  <title>Commandes Goodies - MSB Logistique</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles-new.css">
   <style>
-    .table { width:100%; border-collapse: collapse; }
-    .table th, .table td { padding: 8px; border-bottom: 1px solid var(--border); text-align:left; }
-    .mono { font-variant-numeric: tabular-nums; }
+    .orders-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .orders-table thead {
+      background: var(--BLEU_PRINCIPAL);
+    }
+    .orders-table th {
+      padding: 16px;
+      text-align: left;
+      color: white;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .orders-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #E4E4E7;
+      color: var(--GRIS_FONCE);
+    }
+    .orders-table tbody tr:hover {
+      background: var(--BEIGE_CLAIR);
+    }
+    .mono {
+      font-variant-numeric: tabular-nums;
+      font-family: 'Inter', monospace;
+    }
   </style>
 </head>
 <body>
-  <div class="widewrap">
-    <div class="card">
-      <div class="row" style="justify-content: space-between;">
-        <h1>All orders</h1>
-        <button class="btn_sober" onclick="location.href='/dashboard_s'">Back</button>
+  <div class="Page">
+    <header class="desktop">
+      <button class="hamburger-btn" type="button" aria-label="Menu" onclick="toggleHamburger(this)">
+        <img class="hamburger-icon icon-menu" src="/assets/icon-menu.svg" alt="" aria-hidden="false" />
+        <img class="hamburger-icon icon-close" src="/assets/icon-close.svg" alt="" aria-hidden="true" />
+      </button>
+      <img class="LogoDesktop" src="/logo.png" alt="MSB Logo" />
+      <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/dashboard'" />
+    </header>
+    <main>
+      <div class="Formulaire" style="max-width: 1200px;">
+        <div class="titre-sous-titre block">
+          <h1>Toutes les Commandes</h1>
+          <p class="sous-titre-1" style="cursor: default;">Visualisation des commandes de goodies</p>
+        </div>
+
+        <div id="msg" class="alert err" style="display:none;"></div>
+
+        <table class="orders-table" id="tbl">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Prénom</th>
+              <th>T-shirts</th>
+              <th>Gourdes</th>
+              <th>Goodie 3</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
       </div>
-
-      <table class="table" id="tbl">
-        <thead>
-          <tr>
-            <th>Last name</th>
-            <th>First name</th>
-            <th>T-shirts</th>
-            <th>Gourds</th>
-            <th>Third</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div id="msg" class="alert" style="display:none;"></div>
-    </div>
+    </main>
   </div>
 
   <script>
@@ -45,10 +82,11 @@
       msg.textContent = text;
       msg.className = "alert err";
       msg.style.display = "block";
+      setTimeout(() => msg.style.display = "none", 5000);
     }
 
     function fmtTime(iso){
-      try { return new Date(iso).toLocaleString(); }
+      try { return new Date(iso).toLocaleString('fr-FR'); }
       catch { return iso; }
     }
 
@@ -58,10 +96,15 @@
         if (!res.ok) return show(await res.text());
         const rows = await res.json();
 
+        if (rows.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--GRIS);">Aucune commande pour le moment</td></tr>';
+          return;
+        }
+
         tbody.innerHTML = rows.map(r => `
           <tr>
-            <td>${r.last_name ?? ""}</td>
-            <td>${r.first_name ?? ""}</td>
+            <td>${r.last_name ?? "-"}</td>
+            <td>${r.first_name ?? "-"}</td>
             <td class="mono">${r.tshirt_qty}</td>
             <td class="mono">${r.gourd_qty}</td>
             <td class="mono">${r.goodie3_qty}</td>
@@ -69,11 +112,12 @@
           </tr>
         `).join("");
       } catch {
-        show("Network error.");
+        show("Erreur réseau.");
       }
     }
 
     load();
   </script>
+  <script src="/hamburger.js"></script>
 </body>
 </html>
