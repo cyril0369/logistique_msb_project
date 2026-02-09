@@ -48,3 +48,5 @@ reports/
 # --- données volumineuses ---
 data/raw/
 data/tmp/
+
+node_modules/
