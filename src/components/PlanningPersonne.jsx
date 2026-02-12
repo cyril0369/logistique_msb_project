@@ -1,53 +1,50 @@
 import edtData from '../data/edt.json';
-import { useEffect } from 'react';
 
-export default function PlanningPersonne() {
-    console.log(edtData);
+export default function PlanningPersonne({ day }) {
 
-    useEffect(() => {
-        const container = document.getElementById("vendredi");
+  const heureDebut = 8;
+  const heureFin = 18;
 
-        // plage horaire affichée
-        const heureDebut = 8;
-        const heureFin = 18;
+  const heuresOccupees = {};
 
-        // création d'une map des heures occupées
-        const heuresOccupees = {};
+  if (edtData[day]) {
+    for (const tache in edtData[day]) {
+      const debut = parseInt(edtData[day][tache].heure_debut);
+      const fin = parseInt(edtData[day][tache].heure_fin);
 
-        // remplir les heures occupées à partir du JSON
-        for (const tache in edtData.vendredi) {
-        const debut = parseInt(edtData.vendredi[tache].heure_debut);
-        const fin = parseInt(edtData.vendredi[tache].heure_fin);
+      for (let h = debut; h < fin; h++) {
+        heuresOccupees[h] = tache;
+      }
+    }
+  }
 
-        for (let h = debut; h < fin; h++) {
-            heuresOccupees[h] = tache;
-        }
-        }
-
-        // créer les cases
-        for (let h = heureDebut; h < heureFin; h++) {
-        const div = document.createElement("div");
-        div.className = "heure";
-
-        if (heuresOccupees[h]) {
-            div.textContent = `${h}h - ${h+1}h : ${heuresOccupees[h]}`;
-            div.style.backgroundColor = "#cce5ff";
-        } else {
-            div.textContent = `${h}h - ${h+1}h`;
-        }
-
-        container.appendChild(div);
-        }
-    }, []);
-  
   return (
     <div className="planning-personne">
-        <h1>Mon Planning</h1>
-        <div className="journee">
-            <h2>Vendredi</h2>
-            <div id="vendredi"></div>
-        </div>
-    </div>
+      <div className="journee">
+        <h2>{day.charAt(0).toUpperCase() + day.slice(1)}</h2>
 
+        <div className="planning">
+          {Array.from({ length: heureFin - heureDebut }, (_, i) => {
+            const h = heureDebut + i;
+            const occupe = heuresOccupees[h];
+
+            return (
+                <div className='creneau' key={h}>
+                    <div
+                        className="heure"
+                    >
+                        {h}h
+                    </div>
+                    <div
+                        className={`tache ${occupe ? 'occupe' : ''}`}
+                    >
+                        {occupe ? `${occupe}` : ''}
+                    </div>
+                </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }

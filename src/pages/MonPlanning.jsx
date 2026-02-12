@@ -7,7 +7,11 @@ export default function MonPlanning() {
         <div className="Page">
             <Desktop />
             <main>
-                <PlanningPersonne />
+                <div className="planning-trois-jours">
+                    <PlanningPersonne day="vendredi" />
+                    <PlanningPersonne day="samedi" />
+                    <PlanningPersonne day="dimanche" />
+                </div>
             </main>
         </div>
     )

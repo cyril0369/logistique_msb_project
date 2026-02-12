@@ -305,3 +305,49 @@ main {
 .se-connecter h4 {
   white-space: nowrap;
 }
+
+.planning-trois-jours {
+  display: flex;
+  flex-direction: row;
+}
+
+.planning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.heure {
+  width: 10px;
+}
+
+.creneau {
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.tache {
+  background-color: var(--GRIS_CLAIR);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 340px;
+  height: 80px;
+  border-radius: 20px;
+  opacity: 1;
+  padding: 16px;
+}
+
+.occupe {
+  background-color: var(--ROUGE);
+}
+
+.journee {
+  text-align: center;
+}
+
