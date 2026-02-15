@@ -1,7 +1,17 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function FormulaireInscriptionTeamMSB() {
     const navigate = useNavigate();
+    const { updateUserStatus } = useAuth();
+    
+    const handleSubmit = () => {
+        // Change user status to staff (implement your logic here)
+        updateUserStatus('admin');
+
+        // Navigate to the home page
+        navigate('/');
+    };
 
     return(
         <div className="Formulaire">
@@ -49,7 +59,7 @@ export default function FormulaireInscriptionTeamMSB() {
                 <input type="text" className='input-text'/>
             </div>
             <div className="boutton-mdp-oublier block">
-                <button className="se-connecter">
+                <button className="se-connecter" onClick={handleSubmit}>
                     <h4>S’inscrire</h4>
                 </button>
                 <p className="corps-2">* Champs obligatoire</p>

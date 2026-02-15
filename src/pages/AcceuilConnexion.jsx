@@ -5,7 +5,7 @@ export default function AcceuilConnexion() {
     return (
         <div className="Page">
             <Desktop />
-            <main>
+            <main className="main-connection">
                 <FormulaireConnexion />
             </main>
         </div>
