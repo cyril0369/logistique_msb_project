@@ -6,6 +6,7 @@ import AcceuilInscriprionTeamMSB from "./pages/AcceuilInscriprionTeamMSB.jsx";
 import AcceuilInscriprionStaff from './pages/AcceuilInscriprionStaff.jsx';
 import AcceuilInscriprionParticipant from './pages/AcceuilInscriprionParticipant.jsx';
 import MonPlanning from './pages/MonPlanning.jsx';
+import CommandeGoodises from './pages/CommandeGoodises.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
             <Route path="/acceuil/inscription/staff" element={<AcceuilInscriprionStaff />} />
             <Route path="/acceuil/inscription/participant" element={<AcceuilInscriprionParticipant />} />
             <Route path="/monplanning" element={<MonPlanning />} />
+            <Route path='/CommandeGoodises' element={<CommandeGoodises />} />
           </Routes>
         </div>
       </Router>

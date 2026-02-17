@@ -21,7 +21,7 @@ export default function Sidebare ({ isHidden }) {
                 name: "Espace personnel",
                 children: [
                     { name: "Mon profil", path: "/profil" },
-                    { name: "Commande de goodies", path: "/" },
+                    { name: "Commande de goodies", path: "/CommandeGoodises" },
                     { name: "Mon planning", path: "/monplanning" },
                 ],
             },
@@ -44,7 +44,7 @@ export default function Sidebare ({ isHidden }) {
             { name: "Accueil", path: "/acceuil" },
             { name: "Informations pratiques", path: "/" },
             { name: "Mon profil", path: "/" },
-            { name: "Commande de goodies", path: "/" },
+            { name: "Commande de goodies", path: "/CommandeGoodises" },
             { name: "Mon planning", path: "/monplanning" },
             { name: "Documents utiles", path: "/" },
         ],
@@ -52,7 +52,7 @@ export default function Sidebare ({ isHidden }) {
             { name: "Accueil", path: "/acceuil" },
             { name: "Informations pratiques", path: "/" },
             { name: "Mon profil", path: "/" },
-            { name: "Commande de goodies", path: "/" },
+            { name: "Commande de goodies", path: "/CommandeGoodises" },
             { name: "Mon planning", path: "/monplanning" },
         ],
     };
@@ -109,9 +109,6 @@ export default function Sidebare ({ isHidden }) {
                     </button>
                 )
             ))}
-            {/* <h3 onClick={() => navigate("/acceuil")}>Accueil</h3>
-            <h3>Informations pratiques</h3>
-            <h3 onClick={() => navigate("/acceuil/connexion")}>Connexion / Inscription</h3> */}
         </div>
     )
 }
