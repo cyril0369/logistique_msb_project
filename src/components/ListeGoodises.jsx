@@ -107,6 +107,11 @@ export default function ListeGoodises() {
                     </div>
                 </div>
             </div>
+            <div className="boutton-mdp-oublier block">
+                <button className="se-connecter">
+                    <h4>Valider</h4>
+                </button>
+            </div>
         </div>
     )
 }

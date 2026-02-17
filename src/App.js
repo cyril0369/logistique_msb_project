@@ -7,6 +7,7 @@ import AcceuilInscriprionStaff from './pages/AcceuilInscriprionStaff.jsx';
 import AcceuilInscriprionParticipant from './pages/AcceuilInscriprionParticipant.jsx';
 import MonPlanning from './pages/MonPlanning.jsx';
 import CommandeGoodises from './pages/CommandeGoodises.jsx';
+import AProposMsb from './pages/Apropos.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
             <Route path="/acceuil/inscription/participant" element={<AcceuilInscriprionParticipant />} />
             <Route path="/monplanning" element={<MonPlanning />} />
             <Route path='/CommandeGoodises' element={<CommandeGoodises />} />
+            <Route path='/About' element={<AProposMsb />} />
           </Routes>
         </div>
       </Router>

@@ -11,12 +11,12 @@ export default function Sidebare ({ isHidden }) {
     const menuItems = {
         default: [
             { name: "Accueil", path: "/acceuil" },
-            { name: "Informations pratiques", path: "/" },
+            { name: "Informations pratiques", path: "/about" },
             { name: "Connexion / Inscription", path: "/acceuil/connexion" },
         ],
         admin: [
             { name: "Accueil", path: "/acceuil" },
-            { name: "Informations pratiques", path: "/" },
+            { name: "Informations pratiques", path: "/about" },
             {
                 name: "Espace personnel",
                 children: [
@@ -42,7 +42,7 @@ export default function Sidebare ({ isHidden }) {
         ],
         staff: [
             { name: "Accueil", path: "/acceuil" },
-            { name: "Informations pratiques", path: "/" },
+            { name: "Informations pratiques", path: "/about" },
             { name: "Mon profil", path: "/" },
             { name: "Commande de goodies", path: "/CommandeGoodises" },
             { name: "Mon planning", path: "/monplanning" },
@@ -50,7 +50,7 @@ export default function Sidebare ({ isHidden }) {
         ],
         participant: [
             { name: "Accueil", path: "/acceuil" },
-            { name: "Informations pratiques", path: "/" },
+            { name: "Informations pratiques", path: "/about" },
             { name: "Mon profil", path: "/" },
             { name: "Commande de goodies", path: "/CommandeGoodises" },
             { name: "Mon planning", path: "/monplanning" },
