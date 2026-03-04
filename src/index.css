@@ -159,6 +159,13 @@ main {
   transition: transform 180ms ease, opacity 150ms ease;
 }
 
+.hamburger-icon:hover {
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  transition: transform 180ms ease, opacity 150ms ease;
+}
+
 .icon-close {
   opacity: 0;
   transform: rotate(-90deg);
@@ -181,9 +188,17 @@ main {
 }
 
 .LogoDesktop {
+  cursor: pointer;
   width: 48px;
   height: 48px;
 }
+
+.LogoDesktop:hover {
+  cursor: pointer;
+  width: 55px;
+  height: 55px;
+}
+
 
 .icon-connextion {
   color: var(--BEIGE);

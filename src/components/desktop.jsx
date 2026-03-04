@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 import { IoPersonCircleOutline } from "react-icons/io5";
 import LogoCouleur from "../images/464515b70379eaca6faa8af8ddfae9b805a7bb96.png";
 import Sidebare from "./Sidebare.jsx";
 
 export default function Desktop() {
   const [isSidebarHidden, setIsSidebarHidden] = useState(true);
+  const navigate = useNavigate();
 
   function toggleHamburger() {
     setIsSidebarHidden(prev => !prev);
@@ -38,7 +40,7 @@ export default function Desktop() {
           )}
         </button>
 
-        <img className="LogoDesktop" src={LogoCouleur} alt="LOGO DESKTOP" />
+        <img className="LogoDesktop" src={LogoCouleur} alt="LOGO DESKTOP" onClick={() => navigate('/')} />
         <IoPersonCircleOutline className="icon-connextion" />
       </header>
 
