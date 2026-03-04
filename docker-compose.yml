@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  react-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: msb-react-app
+    ports:
+      - "3000:3000"
+    volumes:
+      # Monter le code source pour le hot-reload en développement
+      - .:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    stdin_open: true
+    tty: true
