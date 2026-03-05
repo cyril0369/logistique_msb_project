@@ -1,6 +1,44 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: msb-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: msb_user
+      POSTGRES_PASSWORD: msb_password
+      POSTGRES_DB: msb_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/init_msb.sql:/docker-entrypoint-initdb.d/01-init_msb.sql:ro
+    networks:
+      - msb-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U msb_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: msb-pgadmin
+    restart: always
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@msb.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - msb-network
+
   react-app:
     build:
       context: .
@@ -15,46 +53,16 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
-      - REACT_APP_DB_HOST=postgres
+      - REACT_APP_DB_HOST=msb-postgres
       - REACT_APP_DB_PORT=5432
       - REACT_APP_DB_NAME=msb_db
       - REACT_APP_DB_USER=msb_user
       - REACT_APP_DB_PASSWORD=msb_password
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     stdin_open: true
     tty: true
-    networks:
-      - msb-network
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: msb-postgres
-    restart: always
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: msb_user
-      POSTGRES_PASSWORD: msb_password
-      POSTGRES_DB: msb_db
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - msb-network
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: msb-pgadmin
-    restart: always
-    ports:
-      - "5050:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@msb.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    volumes:
-      - pgadmin-data:/var/lib/pgadmin
-    depends_on:
-      - postgres
     networks:
       - msb-network
 
