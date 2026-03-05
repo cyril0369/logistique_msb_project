@@ -293,6 +293,14 @@ main {
   line-height: 100%;
 }
 
+.main-acceil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .image-acceil {
   position: fixed;
   object-position: center 80px;
@@ -300,11 +308,73 @@ main {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.6;
+  opacity: 0.3;
   z-index: -1;
 }
 
+.info-acceil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 48px;
+}
+
+.info1 {
+  display: flex;
+  gap: 80px;
+}
+
+.element {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.info-acceil h1 {
+  size: 48px;
+  color: var(--BLEU_PRINCIPAL);
+}
+
+.info-acceil h4 {
+  font-weight: bold;
+  size: 32px;
+  color: var(--BLEU_CANARD);
+}
+
+.info-acceil h3 {
+  size: 28px;
+  color: var(--BLEU_CANARD);
+}
+
+.icon {
+  color: var(--BLEU_CANARD);
+  width: 40px;
+  height: 40px;
+}
+
+.icon-app {
+  color: var(--BLEU_CANARD);
+  width: 50px;
+  height: 50px;
+}
+
+.titre-button {
+  color: var(--BEIGE);
+}
+
+
 /* --- Formulaire de connexion --- */
+
+.main-connection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .Formulaire {
   display: flex;
   flex-direction: column;
@@ -388,7 +458,7 @@ main {
 .se-connecter {
   color: var(--BEIGE);
   background-color: var(--BLEU_PRINCIPAL);
-  width: 206px;
+  width: auto;
   height: 52px;
   padding-right: 28px;
   padding-left: 28px;
