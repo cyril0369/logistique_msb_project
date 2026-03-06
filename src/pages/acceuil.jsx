@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaCalendarAlt } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
-import { FaInstagram } from "react-icons/fa";
+import { RiInstagramFill } from "react-icons/ri";
 import { FaFacebookSquare } from "react-icons/fa";
 import { FaYoutube } from "react-icons/fa";
 
@@ -54,15 +54,15 @@ export default function Acceuil() {
                             <FaCalendarAlt className="icon"/> 
                             <h3>29 au 31 mai 2026</h3>
                         </div>
-                        <div className="element">
+                        <div className="element clicable" onClick={() => window.open('https://www.google.com/maps/place/Le+Grau-du-Roi/@43.5219675,4.0969052,10632m/data=!3m1!1e3!4m6!3m5!1s0x12b69124a10b842b:0x4078821166b4080!8m2!3d43.537476!4d4.137918!16s%2Fm%2F02w9nvf?entry=ttu&g_ep=EgoyMDI2MDMwMi4wIKXMDSoASAFQAw%3D%3D', '_blank')}>
                             <FaLocationDot className="icon"/> 
                             <h3>Grau-du-Roi</h3>
                         </div>
                     </div>
                     <div className="info1">
-                        <FaInstagram className="icon-app"/>
-                        <FaFacebookSquare className="icon-app"/>
-                        <FaYoutube className="icon-app"/>
+                        <RiInstagramFill className="icon-app clicable" onClick={() => window.open('https://www.instagram.com/msb.ecm/', '_blank')}/>
+                        <FaFacebookSquare className="icon-app clicable" onClick={() => window.open('https://www.facebook.com/MSBECM', '_blank')}/>
+                        <FaYoutube className="icon-app clicable" onClick={() => window.open('https://www.youtube.com/@massiliasunball8783', '_blank')}/>
                     </div>
                     <div className="info1">
                         <button className="se-connecter" 
