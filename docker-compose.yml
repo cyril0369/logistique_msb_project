@@ -1,6 +1,28 @@
 version: '3.8'
 
 services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: msb-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=msb-postgres
+      - DB_PORT=5432
+      - DB_NAME=msb_db
+      - DB_USER=msb_user
+      - DB_PASSWORD=msb_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - msb-network
+      
   postgres:
     image: postgres:15-alpine
     container_name: msb-postgres
