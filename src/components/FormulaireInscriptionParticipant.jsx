@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import {authService} from '../services/authService';
 
 export default function FormulaireInscriptionParticipant() {
     const navigate = useNavigate();
@@ -40,19 +41,7 @@ export default function FormulaireInscriptionParticipant() {
                 id_ecole: parseInt(formData.id_ecole) || null
             };
 
-            const response = await fetch('http://localhost:8000/auth/signup', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(completeData)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.detail || 'Erreur lors de l\'inscription');
-            }
+            const data = await authService.signup(completeData);
 
             // Sauvegarder le token
             localStorage.setItem('token', data.token);
