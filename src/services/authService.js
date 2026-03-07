@@ -23,5 +23,28 @@ export const authService = {
     localStorage.setItem('user', JSON.stringify(data.user));
     
     return data;
-  }
+  },
+
+  login: async (email, mot_de_passe) => {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, mot_de_passe })
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.detail || data.error || 'Erreur de connexion');
+    }
+
+    const data = await response.json();
+    
+    // Stocker le token et l'utilisateur
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    
+    return data;
+  },
 }

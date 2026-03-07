@@ -14,7 +14,7 @@ export default function Sidebare ({ isHidden }) {
             { name: "Informations pratiques", path: "/about" },
             { name: "Connexion / Inscription", path: "/acceuil/connexion" },
         ],
-        admin: [
+        TeamMSB: [
             { name: "Accueil", path: "/acceuil" },
             { name: "Informations pratiques", path: "/about" },
             {
@@ -40,7 +40,7 @@ export default function Sidebare ({ isHidden }) {
                 ],
             },
         ],
-        staff: [
+        Staff: [
             { name: "Accueil", path: "/acceuil" },
             { name: "Informations pratiques", path: "/about" },
             { name: "Mon profil", path: "/" },
@@ -48,7 +48,7 @@ export default function Sidebare ({ isHidden }) {
             { name: "Mon planning", path: "/monplanning" },
             { name: "Documents utiles", path: "/" },
         ],
-        participant: [
+        Participant: [
             { name: "Accueil", path: "/acceuil" },
             { name: "Informations pratiques", path: "/about" },
             { name: "Mon profil", path: "/" },

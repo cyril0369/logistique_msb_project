@@ -17,9 +17,9 @@ export default function Acceuil() {
     
     const title_acceuil = {
         default : "Massilia Sun Ball",
-        admin : "Bienvenue dans l'espace admin",
-        staff : "Bienvenue dans l'espace staff",
-        participant : "Bienvenue dans l'espace participant"
+        TeamMSB : "Bienvenue dans l'espace admin",
+        Staff : "Bienvenue dans l'espace staff",
+        Participant : "Bienvenue dans l'espace participant"
     }
 
     const titre = title_acceuil[user.role]

@@ -90,6 +90,11 @@ class StaffeurCreate(BaseModel):
     remarques_staff: Optional[str] = None
 
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+    mot_de_passe: str
+
+
 @app.get("/")
 def root():
     return {"message": "MSB API - Bienvenue !"}
@@ -152,6 +157,42 @@ def signup(request: PersonneCreate, conn=Depends(get_db)):
         cursor.close()
         raise HTTPException(
             status_code=400, detail="Erreur lors de l'inscription")
+
+
+@app.post("/auth/login")
+def login(request: LoginRequest, conn=Depends(get_db)):
+    """Connexion d'un utilisateur"""
+    cursor = conn.cursor()
+
+    # Récupérer l'utilisateur par email
+    cursor.execute("SELECT * FROM personne WHERE email = %s", (request.email,))
+    user = cursor.fetchone()
+    cursor.close()
+
+    # Vérifier si l'utilisateur existe
+    if not user:
+        raise HTTPException(
+            status_code=401, detail="Email ou mot de passe incorrect")
+
+    # Vérifier le mot de passe
+    if not bcrypt.checkpw(request.mot_de_passe.encode('utf-8'), user["mot_de_passe"].encode('utf-8')):
+        raise HTTPException(
+            status_code=401, detail="Email ou mot de passe incorrect")
+
+    # Générer le JWT
+    token = create_jwt_token(user)
+
+    return {
+        "message": "Connexion réussie",
+        "token": token,
+        "user": {
+            "id": user["id_personne"],
+            "prenom": user["prenom"],
+            "nom": user["nom"],
+            "email": user["email"],
+            "statut": user["statut"]
+        }
+    }
 
 
 @app.get("/personnes")
