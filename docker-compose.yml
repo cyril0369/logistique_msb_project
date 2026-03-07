@@ -53,6 +53,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@msb.com
       PGADMIN_DEFAULT_PASSWORD: admin
+      GUNICORN_ACCESS_LOG_LEVEL: warning
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
