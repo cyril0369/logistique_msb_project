@@ -4,8 +4,16 @@ import { useState } from 'react';
 export default function FormulaireInscription() {
     const navigate = useNavigate();
 
-    const [genre, setGenre] = useState(null);
-    const [status, setStatus] = useState(null);
+    const [formData, setFormData] = useState({
+        nom: '',
+        prenom: '',
+        genre: '',
+        email: '',
+        telephone: '',
+        mot_de_passe: '',
+        confirmation_mot_de_passe: '',
+        statut: ''
+    });
 
     return(
         <div className="Formulaire">
@@ -15,50 +23,138 @@ export default function FormulaireInscription() {
             </div>
             <div className="champ-de-saisie block">
                 <p className="corps-2">Nom *</p>
-                <input type="text" className='input-text'/>
+                <input 
+                    type="text" 
+                    className='input-text'
+                    value={formData.nom}
+                    onChange={(e) => setFormData({...formData, nom: e.target.value})}
+                />
                 <p className="corps-2">Prenom *</p>
-                <input type="text" className='input-text'/>
+                <input 
+                    type="text" 
+                    className='input-text'
+                    value={formData.prenom}
+                    onChange={(e) => setFormData({...formData, prenom: e.target.value})}
+                />
                 <p className="corps-2">genre *</p>
                 <div className='cases-a-cocher'>
                     <div className="case-a-cocher">
-                        <input type="radio" name="genre" value="homme" checked={genre === "homme"} onChange={(e) => setGenre(e.target.value)} className='cases'/>
+                        <input 
+                            type="radio" 
+                            name="genre" 
+                            value="Homme" 
+                            checked={formData.genre === "Homme"} 
+                            onChange={(e) => setFormData({...formData, genre: e.target.value})} 
+                            className='cases'
+                        />
                         <p className="corps-2">Homme</p>
                     </div>
                     <div className="case-a-cocher">
-                        <input type="radio" name="genre" value="femme" checked={genre === "femme"} onChange={(e) => setGenre(e.target.value)} className='cases'/>
+                        <input 
+                            type="radio" 
+                            name="genre" 
+                            value="Femme" 
+                            checked={formData.genre === "Femme"} 
+                            onChange={(e) => setFormData({...formData, genre: e.target.value})} 
+                            className='cases'
+                        />
                         <p className="corps-2">Femme</p>
                     </div>
                     <div className="case-a-cocher">
-                        <input type="radio" name="genre" value="autre" checked={genre === "autre"} onChange={(e) => setGenre(e.target.value)} className='cases'/>
+                        <input 
+                            type="radio" 
+                            name="genre" 
+                            value="Autre" 
+                            checked={formData.genre === "Autre"} 
+                            onChange={(e) => setFormData({...formData, genre: e.target.value})} 
+                            className='cases'
+                        />
                         <p className="corps-2">Autre</p>
                     </div>
                 </div>  
                 <p className="corps-2">Email *</p>
-                <input type="text" className='input-text'/>
+                <input 
+                    type="email" 
+                    className='input-text'
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
                 <p className="corps-2">Telephone *</p>
-                <input type="text" className='input-text'/>
+                <input 
+                    type="tel" 
+                    className='input-text'
+                    value={formData.telephone}
+                    onChange={(e) => setFormData({...formData, telephone: e.target.value})}
+                />
                 <p className="corps-2">Mot de passe *</p>
-                <input type="text" className='input-text'/>
+                <input 
+                    type="password" 
+                    className='input-text'
+                    value={formData.mot_de_passe}
+                    onChange={(e) => setFormData({...formData, mot_de_passe: e.target.value})}
+                />
                 <p className="corps-2">Confirmation de mot de passe *</p>
-                <input type="text" className='input-text'/>
+                <input 
+                    type="password" 
+                    className='input-text'
+                    value={formData.confirmation_mot_de_passe}
+                    onChange={(e) => setFormData({...formData, confirmation_mot_de_passe: e.target.value})}
+                />
                 <p className="corps-2">Status *</p>
                 <div className='cases-a-cocher'>
                     <div className="case-a-cocher">
-                        <input type="radio" name="status" value="team" checked={status === "team"} onChange={(e) => setStatus(e.target.value)} className='cases'/>
+                        <input 
+                            type="radio" 
+                            name="status" 
+                            value="TeamMSB" 
+                            checked={formData.statut === "TeamMSB"} 
+                            onChange={(e) => setFormData({...formData, statut: e.target.value})} 
+                            className='cases'
+                        />
                         <p className="corps-2">Team MSB</p>
                     </div>
                     <div className="case-a-cocher">
-                        <input type="radio" name="status" value="staff" checked={status === "staff"} onChange={(e) => setStatus(e.target.value)} className='cases'/>
+                        <input 
+                            type="radio" 
+                            name="status" 
+                            value="Staff" 
+                            checked={formData.statut === "Staff"} 
+                            onChange={(e) => setFormData({...formData, statut: e.target.value})} 
+                            className='cases'
+                        />
                         <p className="corps-2">Staff</p>
                     </div>
                     <div className="case-a-cocher">
-                        <input type="radio" name="status" value="participant" checked={status === "participant"} onChange={(e) => setStatus(e.target.value)} className='cases'/>
+                        <input 
+                            type="radio" 
+                            name="status" 
+                            value="Participant" 
+                            checked={formData.statut === "Participant"} 
+                            onChange={(e) => setFormData({...formData, statut: e.target.value})} 
+                            className='cases'
+                        />
                         <p className="corps-2">Participant</p>
                     </div>
                 </div>  
             </div>
             <div className="boutton-mdp-oublier block">
-                <button className="se-connecter" onClick={() => navigate(`/acceuil/inscription/${status}`)}>
+                <button 
+                    className="se-connecter" 
+                    onClick={() => {
+                        // Validation
+                        if (!formData.nom || !formData.prenom || !formData.email || !formData.mot_de_passe || !formData.statut) {
+                            alert('Veuillez remplir tous les champs obligatoires');
+                            return;
+                        }
+                        if (formData.mot_de_passe !== formData.confirmation_mot_de_passe) {
+                            alert('Les mots de passe ne correspondent pas');
+                            return;
+                        }
+                        // Sauvegarder dans localStorage pour passer au formulaire suivant
+                        localStorage.setItem('inscriptionData', JSON.stringify(formData));
+                        navigate(`/acceuil/inscription/${formData.statut}`);
+                    }}
+                >
                     <h4>Suivant</h4>
                 </button>
                 <p className="corps-2">* Champs obligatoires</p>
