@@ -9,6 +9,7 @@ import MonPlanning from './pages/MonPlanning.jsx';
 import CommandeGoodises from './pages/CommandeGoodises.jsx';
 import AProposMsb from './pages/Apropos.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import ProtectedRoute from './components/ProtectedRoutes.jsx';
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
             <Route path="/acceuil/inscription/teammsb" element={<AcceuilInscriprionTeamMSB />} />
             <Route path="/acceuil/inscription/staff" element={<AcceuilInscriprionStaff />} />
             <Route path="/acceuil/inscription/participant" element={<AcceuilInscriprionParticipant />} />
-            <Route path="/monplanning" element={<MonPlanning />} />
+            <Route path="/monplanning" element={<ProtectedRoute><MonPlanning /></ProtectedRoute>}/>
             <Route path='/CommandeGoodises' element={<CommandeGoodises />} />
             <Route path='/About' element={<AProposMsb />} />
           </Routes>

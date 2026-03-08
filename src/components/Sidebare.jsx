@@ -57,7 +57,9 @@ export default function Sidebare ({ isHidden }) {
         ],
     };
 
-    const items = menuItems[user.role] ?? menuItems.default;
+    console.log(user)
+    const items = (user && user.role && menuItems[user.role]) ? menuItems[user.role] : menuItems.default;
+
     const [openSections, setOpenSections] = useState({
         "Espace personnel": true,
         "Espace de travail": true,

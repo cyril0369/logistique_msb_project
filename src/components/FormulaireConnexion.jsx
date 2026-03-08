@@ -9,7 +9,7 @@ export default function FormulaireConnexion() {
     const [motDePasse, setMotDePasse] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { updateUserStatus } = useAuth();
+    const { updateUserRole } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -20,9 +20,9 @@ export default function FormulaireConnexion() {
             const data = await authService.login(email, motDePasse);
             
             console.log('Connexion réussie:', data);
-            navigate('/');
-            updateUserStatus(data["user"]["statut"]);
+            updateUserRole(data["user"]["statut"]);
             console.log(data["user"]["statut"])
+            navigate('/');
 
         } catch (err) {
             console.error('Erreur de connexion:', err);

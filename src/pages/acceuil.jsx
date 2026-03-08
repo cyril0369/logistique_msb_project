@@ -16,28 +16,28 @@ export default function Acceuil() {
     const navigate = useNavigate();
     
     const title_acceuil = {
-        default : "Massilia Sun Ball",
         TeamMSB : "Bienvenue dans l'espace admin",
         Staff : "Bienvenue dans l'espace staff",
         Participant : "Bienvenue dans l'espace participant"
     }
 
-    const titre = title_acceuil[user.role]
-
-    if (user.role !== 'default') {
+    if (user !== null) {
+        console.log(user);
         return (
             <div className="Page">
                 <Desktop />
                 <main className="main-acceil">
                     <div className="info-acceil">
                         <div className="info">
-                            <h1>{titre}</h1>  
+                            <h1>{title_acceuil[user.role]}</h1>  
                         </div>
                     </div>
                 </main>
             </div>
         )
     }
+
+    console.log(user);
 
     return (
         <div className="Page">
