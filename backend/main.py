@@ -175,7 +175,8 @@ def login(request: LoginRequest, conn=Depends(get_db)):
             status_code=401, detail="Email ou mot de passe incorrect")
 
     # Vérifier le mot de passe
-    if not bcrypt.checkpw(request.mot_de_passe.encode('utf-8'), user["mot_de_passe"].encode('utf-8')):
+    if not bcrypt.checkpw(request.mot_de_passe.encode('utf-8'),
+                          user["mot_de_passe"].encode('utf-8')):
         raise HTTPException(
             status_code=401, detail="Email ou mot de passe incorrect")
 

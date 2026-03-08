@@ -412,6 +412,7 @@ main {
   border-radius: 12px;
   border: 0;
   background: var(--GRIS_CLAIR);
+  padding: 10px;
 }
 
 .champ-de-saisie {
