@@ -1,27 +1,23 @@
-import edtData from '../data/edt.json';
-
-export default function PlanningPersonne({ day }) {
+export default function PlanningPersonne({ day, taches = [] }) {
 
   const heureDebut = 8;
   const heureFin = 18;
 
   const heuresOccupees = {};
 
-  if (edtData[day]) {
-    for (const tache in edtData[day]) {
-      const debut = parseInt(edtData[day][tache].heure_debut);
-      const fin = parseInt(edtData[day][tache].heure_fin);
+  for (const tache of taches) {
+    const debut = parseInt(String(tache.heure_debut).split(':')[0], 10);
+    const fin = parseInt(String(tache.heure_fin).split(':')[0], 10);
 
-      for (let h = debut; h < fin; h++) {
-        heuresOccupees[h] = tache;
-      }
+    for (let h = debut; h < fin; h++) {
+      heuresOccupees[h] = tache.tache;
     }
   }
 
   return (
     <div className="planning-personne">
       <div className="journee">
-        <h2>{day.charAt(0).toUpperCase() + day.slice(1)}</h2>
+        <h2>{day}</h2>
 
         <div className="planning">
           {Array.from({ length: heureFin - heureDebut }, (_, i) => {
