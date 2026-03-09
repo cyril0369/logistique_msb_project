@@ -44,18 +44,30 @@ def creer_poules(equipes, max_par_poule=4):
 if __name__ == "__main__":
 
     equipes = [
-        {"id_equipe": 1, "nom": "Centrale_1", "id_sport": 10, "niveau": "Championship", "categorie": "Feminin"},
-        {"id_equipe": 2, "nom": "Centrale_2", "id_sport": 10, "niveau": "Championship", "categorie": "Feminin"},
-        {"id_equipe": 3, "nom": "Polytech_1", "id_sport": 10, "niveau": "Championship", "categorie": "Feminin"},
-        {"id_equipe": 4, "nom": "Polytech_2", "id_sport": 10, "niveau": "Championship", "categorie": "Feminin"},
-        {"id_equipe": 5, "nom": "Mines_1",    "id_sport": 10, "niveau": "Championship", "categorie": "Feminin"},
-        {"id_equipe": 6, "nom": "Mines_2",    "id_sport": 10, "niveau": "Championship", "categorie": "Feminin"},
-        {"id_equipe": 7, "nom": "INSA_1",     "id_sport": 10, "niveau": "Championship", "categorie": "Feminin"},
-        {"id_equipe": 8, "nom": "INSA_2",     "id_sport": 10, "niveau": "Championship", "categorie": "Feminin"},
-        {"id_equipe": 9,  "nom": "Centrale_3", "id_sport": 10, "niveau": "Loisir", "categorie": "Mixte"},
-        {"id_equipe": 10, "nom": "Polytech_3", "id_sport": 10, "niveau": "Loisir", "categorie": "Mixte"},
-        {"id_equipe": 11, "nom": "Mines_3",    "id_sport": 11, "niveau": "Championship", "categorie": "Masculin"},
-        {"id_equipe": 12, "nom": "INSA_3",     "id_sport": 11, "niveau": "Championship", "categorie": "Masculin"},
+        {"id_equipe": 1, "nom": "Centrale_1", "id_sport": 10,
+         "niveau": "Championship", "categorie": "Feminin"},
+        {"id_equipe": 2, "nom": "Centrale_2", "id_sport": 10,
+         "niveau": "Championship", "categorie": "Feminin"},
+        {"id_equipe": 3, "nom": "Polytech_1", "id_sport": 10,
+         "niveau": "Championship", "categorie": "Feminin"},
+        {"id_equipe": 4, "nom": "Polytech_2", "id_sport": 10,
+         "niveau": "Championship", "categorie": "Feminin"},
+        {"id_equipe": 5, "nom": "Mines_1",    "id_sport": 10,
+         "niveau": "Championship", "categorie": "Feminin"},
+        {"id_equipe": 6, "nom": "Mines_2",    "id_sport": 10,
+         "niveau": "Championship", "categorie": "Feminin"},
+        {"id_equipe": 7, "nom": "INSA_1",     "id_sport": 10,
+         "niveau": "Championship", "categorie": "Feminin"},
+        {"id_equipe": 8, "nom": "INSA_2",     "id_sport": 10,
+         "niveau": "Championship", "categorie": "Feminin"},
+        {"id_equipe": 9,  "nom": "Centrale_3", "id_sport": 10,
+         "niveau": "Loisir", "categorie": "Mixte"},
+        {"id_equipe": 10, "nom": "Polytech_3", "id_sport": 10,
+         "niveau": "Loisir", "categorie": "Mixte"},
+        {"id_equipe": 11, "nom": "Mines_3",    "id_sport": 11,
+         "niveau": "Championship", "categorie": "Masculin"},
+        {"id_equipe": 12, "nom": "INSA_3",     "id_sport": 11,
+         "niveau": "Championship", "categorie": "Masculin"},
     ]
 
     # noms pour rendre le test lisible
@@ -66,7 +78,8 @@ if __name__ == "__main__":
     print("poules generees :")
     for p in poules:
         sport = noms_sports.get(p["id_sport"], str(p["id_sport"]))
-        print(f"\n  {p['nom_poule']} | {sport} | {p['niveau']} | {p['categorie']}")
+        print(
+            f"\n  {p['nom_poule']} | {sport} | {p['niveau']} | {p['categorie']}")
         print(f"  equipes (ids) : {p['equipes']}")
 
     print(f"\ntotal poules : {len(poules)}")
