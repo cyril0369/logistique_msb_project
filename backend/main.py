@@ -216,3 +216,27 @@ def get_personne(id_personne: int, conn=Depends(get_db)):
     if not personne:
         raise HTTPException(status_code=404, detail="Personne non trouvée")
     return personne
+
+
+@app.get("/edt/{id_personne}")
+def get_edt_personne(id_personne: int, conn=Depends(get_db)):
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT 
+            j.nom_job AS tache,
+            c.jour,
+            c.heure_debut,
+            c.heure_fin
+        FROM personne p
+        JOIN staffeur s ON s.id_personne = p.id_personne
+        JOIN affectation_staff a ON a.id_staffeur = s.id_staffeur
+        JOIN job j ON j.id_job = a.id_job
+        JOIN creneau c ON c.id_creneau = j.id_creneau
+        WHERE p.id_personne = %s
+        ORDER BY c.jour, c.heure_debut;""", (id_personne,))
+    edt = cursor.fetchall()
+    cursor.close()
+
+    if not edt:
+        raise HTTPException(status_code=404, detail="edt non trouvée")
+    return edt
