@@ -31,6 +31,15 @@ function randomStaffType() {
   return types[Math.floor(Math.random() * types.length)];
 }
 
+function shuffle(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 async function upsertUser(client, { username, email, first_name, last_name, is_admin = 0 }) {
   const password_hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
   const { rows } = await client.query(
@@ -198,9 +207,127 @@ async function seedTeamsAndMembership(client) {
   };
 }
 
+async function seedCreneaux(client) {
+  const slots = [
+    ['vendredi', 9, 10, 'Vendredi 09:00-10:00'],
+    ['vendredi', 10, 11, 'Vendredi 10:00-11:00'],
+    ['samedi', 9, 10, 'Samedi 09:00-10:00'],
+    ['samedi', 10, 11, 'Samedi 10:00-11:00'],
+    ['dimanche', 14, 15, 'Dimanche 14:00-15:00'],
+    ['dimanche', 15, 16, 'Dimanche 15:00-16:00'],
+  ];
+
+  const creneauIds = [];
+  for (const [day_of_week, start_hour, end_hour, label] of slots) {
+    const { rows } = await client.query(
+      `INSERT INTO creneaux (day_of_week, start_hour, end_hour, label)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (day_of_week, start_hour, end_hour)
+       DO UPDATE SET label = EXCLUDED.label
+       RETURNING id`,
+      [day_of_week, start_hour, end_hour, label]
+    );
+    creneauIds.push(rows[0].id);
+  }
+  return creneauIds;
+}
+
+async function seedJobs(client, creneauIds) {
+  const jobsData = [
+    [creneauIds[0], 6, 1, 'Service buvette'],
+    [creneauIds[1], 4, 2, 'Production cuisine'],
+    [creneauIds[2], 4, 3, 'Arbitrage Beach Rugby'],
+    [creneauIds[3], 4, 4, 'Arbitrage Beach Soccer'],
+    [creneauIds[4], 4, 5, 'Arbitrage Beach Volley'],
+    [creneauIds[5], 3, 6, 'Arbitrage Dodgeball'],
+  ];
+
+  for (const [creneau, staff_needed, staff_type, description] of jobsData) {
+    await client.query(
+      `INSERT INTO jobs (creneau, staff_needed, staff_type, description, staff_assigned)
+       VALUES ($1, $2, $3, $4, '{}')`,
+      [creneau, staff_needed, staff_type, description]
+    );
+  }
+}
+
+async function seedPlanningCompetencesAndDisponibilites(client, creneauIds) {
+  const competences = [
+    [1, 'Bar', 'Bar'],
+    [2, 'Cuisine', 'Cuisine'],
+    [3, 'Arbitrage Beach Rugby', 'Arbitrage'],
+    [4, 'Arbitrage Beach Soccer', 'Arbitrage'],
+    [5, 'Arbitrage Beach Volley', 'Arbitrage'],
+    [6, 'Arbitrage Dodgeball', 'Arbitrage'],
+    [7, 'Arbitrage Handball', 'Arbitrage'],
+  ];
+
+  for (const [id_competence, nom_competence, categorie] of competences) {
+    await client.query(
+      `INSERT INTO competence (id_competence, nom_competence, categorie)
+       VALUES ($1, $2, $3::competence_categorie_type)
+       ON CONFLICT (id_competence) DO UPDATE SET
+         nom_competence = EXCLUDED.nom_competence,
+         categorie = EXCLUDED.categorie`,
+      [id_competence, nom_competence, categorie]
+    );
+  }
+
+  const { rows: staffRows } = await client.query(
+    `SELECT id, staff_type, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer,
+            arbitre_beach_volley, arbitre_dodgeball, arbitre_handball
+     FROM staff
+     ORDER BY id`
+  );
+
+  for (const s of staffRows) {
+    const compIds = [];
+    if (Number(s.bar) === 1) compIds.push(1);
+    if (Number(s.cuisine) === 1) compIds.push(2);
+    if (Number(s.arbitre_beach_rugby) === 1) compIds.push(3);
+    if (Number(s.arbitre_beach_soccer) === 1) compIds.push(4);
+    if (Number(s.arbitre_beach_volley) === 1) compIds.push(5);
+    if (Number(s.arbitre_dodgeball) === 1) compIds.push(6);
+    if (Number(s.arbitre_handball) === 1) compIds.push(7);
+
+    // Guarantee at least one competence so every staff profile is usable by the planner.
+    if (!compIds.length) {
+      compIds.push(1 + Math.floor(Math.random() * 7));
+    }
+
+    for (const id_competence of compIds) {
+      await client.query(
+        `INSERT INTO staffeur_competence (id_staffeur, id_competence)
+         VALUES ($1, $2)
+         ON CONFLICT (id_staffeur, id_competence) DO NOTHING`,
+        [s.id, id_competence]
+      );
+    }
+
+    let poolIds = [...creneauIds];
+    if (s.staff_type === 'jour') {
+      poolIds = creneauIds.filter((id, idx) => idx <= 3);
+    } else if (s.staff_type === 'nuit') {
+      poolIds = creneauIds.filter((id, idx) => idx >= 2);
+    }
+
+    const selected = shuffle(poolIds).slice(0, Math.max(2, Math.ceil(poolIds.length * 0.65)));
+    for (const id_creneau of selected) {
+      await client.query(
+        `INSERT INTO staffeur_disponibilite (id_staffeur, id_creneau)
+         VALUES ($1, $2)
+         ON CONFLICT (id_staffeur, id_creneau) DO NOTHING`,
+        [s.id, id_creneau]
+      );
+    }
+  }
+}
+
 async function truncateExistingTables(client) {
   const tablesInOrder = [
     'match',
+    'jobs',
+    'creneaux',
     'poule_equipe',
     'poule',
     'equipe_user',
@@ -265,6 +392,12 @@ async function main() {
       await upsertStaff(client, userId);
       if ((i + 1) % 20 === 0) console.log(`Inserted staff: ${i + 1}`);
     }
+
+    const creneauIds = await seedCreneaux(client);
+    await seedJobs(client, creneauIds);
+    await seedPlanningCompetencesAndDisponibilites(client, creneauIds);
+    console.log('Slots created:', creneauIds.length);
+    console.log('Jobs created:', 6);
 
     const teamStats = await seedTeamsAndMembership(client);
     console.log('Regular users assigned to teams:', teamStats.regularUsers);

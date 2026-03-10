@@ -1,2 +1,2 @@
 node_modules/
-.env
+# .env, sera généralement utilisé pour stocker des variables d'environnement sensibles, il est donc recommandé de l'ignorer en vue de la production...

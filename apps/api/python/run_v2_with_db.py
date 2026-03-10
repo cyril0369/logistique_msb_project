@@ -70,6 +70,10 @@ def fetch_creneaux(conn):
 
 def fetch_staffeurs(conn):
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT id AS id_creneau FROM creneaux ORDER BY id")
+        all_creneau_ids = [int(r["id_creneau"]) for r in cur.fetchall()]
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             """
             SELECT
@@ -101,6 +105,10 @@ def fetch_staffeurs(conn):
 
     for row in rows:
         staff_id = row["id_staffeur"]
+        # If no explicit availability is stored, consider the staffer available on all slots.
+        if not row.get("dispos"):
+            row["dispos"] = list(all_creneau_ids)
+
         existing = set(row.get("competences") or [])
         flag_row = flags.get(staff_id, {})
         for col, comp_id in STAFF_COLUMN_TO_COMPETENCE_ID.items():
