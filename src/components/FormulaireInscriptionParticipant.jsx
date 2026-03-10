@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import {authService} from '../services/authService';
 
 export default function FormulaireInscriptionParticipant() {
     const navigate = useNavigate();
-    const { updateUserStatus } = useAuth();
+    const { signup } = useAuth();
     
     const [infoPersonnelles, setInfoPersonnelles] = useState(null);
     const [formData, setFormData] = useState({
@@ -41,15 +40,11 @@ export default function FormulaireInscriptionParticipant() {
                 id_ecole: parseInt(formData.id_ecole) || null
             };
 
-            const data = await authService.signup(completeData);
+            await signup(completeData);
 
-            // Sauvegarder le token
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            localStorage.removeItem('inscriptionData'); // Nettoyer les données temporaires
+            localStorage.removeItem('inscriptionData');
 
             alert('Inscription réussie !');
-            updateUserStatus('Participant');
             navigate('/');
 
         } catch (error) {

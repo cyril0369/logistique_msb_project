@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import {authService} from '../services/authService';
 
 export default function FormulaireInscriptionTeamMSB() {
     const navigate = useNavigate();
-    const { updateUserStatus } = useAuth();
+    const { signup } = useAuth();
     
     const [infoPersonnelles, setInfoPersonnelles] = useState(null);
     const [formData, setFormData] = useState({
@@ -41,14 +40,11 @@ export default function FormulaireInscriptionTeamMSB() {
                 id_ecole: parseInt(formData.id_ecole) || null
             };
 
-            const data = await authService.signup(completeData);
+            await signup(completeData);
 
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.removeItem('inscriptionData');
 
             alert('Inscription réussie !');
-            updateUserStatus('TeamMSB');
             navigate('/');
 
         } catch (error) {

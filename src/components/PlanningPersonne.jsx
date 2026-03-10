@@ -1,7 +1,7 @@
 export default function PlanningPersonne({ day, taches = [] }) {
 
   const heureDebut = 8;
-  const heureFin = 18;
+  const heureFin = 20;
 
   const heuresOccupees = {};
 

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {authService} from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 
 export default function FormulaireConnexion() {
@@ -9,7 +8,7 @@ export default function FormulaireConnexion() {
     const [motDePasse, setMotDePasse] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { updateUserRole } = useAuth();
+    const { login } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -17,11 +16,9 @@ export default function FormulaireConnexion() {
         setLoading(true);
 
         try {
-            const data = await authService.login(email, motDePasse);
+            await login(email, motDePasse);
             
-            console.log('Connexion réussie:', data);
-            updateUserRole(data["user"]["statut"]);
-            console.log(data["user"]["statut"])
+            console.log('Connexion réussie');
             navigate('/');
 
         } catch (err) {
