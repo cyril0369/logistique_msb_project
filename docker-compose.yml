@@ -81,6 +81,7 @@ services:
       - REACT_APP_DB_NAME=msb_db
       - REACT_APP_DB_USER=msb_user
       - REACT_APP_DB_PASSWORD=msb_password
+      - HOST=0.0.0.0
     depends_on:
       postgres:
         condition: service_healthy
