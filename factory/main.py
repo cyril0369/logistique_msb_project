@@ -47,6 +47,7 @@ def recuperer_staffeurs(conn):
         cur.execute("""
             SELECT 
                 s.id_staffeur,
+                s.type_staff,
                 s.preference_heures_max,
                 s.contrainte_heures_consecutives_max
             FROM staffeur s
@@ -133,6 +134,9 @@ def creer_planning_staff(conn):
     jobs = recuperer_jobs(conn)
     print(f"   ✓ {len(jobs)} jobs récupérés")
     print()
+
+    print(staffeurs)
+    print(creneaux)
 
     # 2. Générer le planning avec l'algorithme de planning_staff.py
     print("🔄 Génération du planning...")
