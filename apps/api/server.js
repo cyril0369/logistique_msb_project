@@ -847,7 +847,7 @@ app.post("/api/admin/scripts/:scriptName/run", requireAuth, requireAdmin, async 
   }
 
   if (!process.env.DATABASE_URL) {
-    return res.status(500).json({ error: "DATABASE_URL n'est pas configuree" });
+    return res.status(500).json({ error: "DATABASE_URL n'est pas configurée" });
   }
 
   if (isPlanningScriptRunning) {
@@ -1208,7 +1208,7 @@ app.post("/logout", (req, res, next) => {
   req.session.destroy((err) => {
     if (err) return next(err);
     res.clearCookie("connect.sid");
-    return res.json({ message: "Deconnexion reussie" });
+    return res.json({ message: "Déconnexion réussie" });
   });
 });
 
