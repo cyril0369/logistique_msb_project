@@ -423,72 +423,83 @@ def remplir_jobs(conn, competences_ids, pole_ids, creneaux):
 
     jobs = []
 
+    creneaux_par_id = {
+        id_creneau: (jour, heure_debut, heure_fin)
+        for id_creneau, jour, heure_debut, heure_fin in creneaux
+    }
+
     # Jobs Bar (Pôle Soirée) - créneaux soirée/nuit
     jobs_bar = [
         ('Bar principal - Soir', 'Soirée',
-         competences_ids['Service au bar'], 14, 17, 2, 3),
+         competences_ids['Service au bar'], 9, 11, 2, 3),
         ('Bar secondaire - Soir', 'Soirée',
-         competences_ids['Service au bar'], 18, 21, 2, 3),
+         competences_ids['Service au bar'], 25, 27, 2, 3),
         ('Bar VIP - Nuit', 'Soirée',
-         competences_ids['Préparation cocktails'], 21, 24, 1, 2),
+         competences_ids['Préparation cocktails'], 28, 30, 1, 2),
     ]
 
     # Jobs Cuisine (Pôle Repas) - créneaux repas
     jobs_cuisine = [
         ('Préparation petit-déjeuner', 'Repas',
-         competences_ids['Préparation sandwiches'], 1, 2, 2, 3),
+         competences_ids['Préparation sandwiches'], 15, 16, 2, 3),
+        ('Préparation petit-déjeuner', 'Repas',
+         competences_ids['Préparation sandwiches'], 31, 32, 2, 3),
         ('Service déjeuner', 'Repas',
-         competences_ids['Service cuisine'], 3, 4, 3, 4),
+         competences_ids['Service cuisine'], 19, 20, 3, 4),
+        ('Service déjeuner', 'Repas',
+         competences_ids['Service cuisine'], 35, 36, 3, 4),
         ('Grill soirée', 'Repas',
-         competences_ids['Cuisson grill'], 18, 19, 2, 3),
+         competences_ids['Cuisson grill'], 25, 26, 2, 3),
     ]
 
     # Jobs Arbitrage (Pôle Tournoi) - créneaux matchs
     jobs_arbitrage = [
         ('Arbitrage Beach Volley Matin', 'Tournoi',
-         competences_ids['Arbitrage Beach Volley'], 1, 3, 4, 6),
+         competences_ids['Arbitrage Beach Volley'], 16, 18, 4, 6),
         ('Arbitrage Beach Volley AM', 'Tournoi',
-         competences_ids['Arbitrage Beach Volley'], 4, 6, 4, 6),
+         competences_ids['Arbitrage Beach Volley'], 21, 23, 4, 6),
         ('Arbitrage Beach Soccer Matin', 'Tournoi',
-         competences_ids['Arbitrage Beach Soccer'], 1, 3, 3, 4),
+         competences_ids['Arbitrage Beach Soccer'], 16, 18, 3, 4),
         ('Arbitrage Basket', 'Tournoi',
-         competences_ids['Arbitrage Basketball'], 4, 6, 2, 3),
+         competences_ids['Arbitrage Basketball'], 21, 23, 2, 3),
     ]
 
     # Jobs Logistique (Pôle Logistique)
     jobs_logistique = [
         ('Montage structures jour 1', 'Logistique',
-         competences_ids['Montage structures'], 0, 3, 4, 6),
+         competences_ids['Montage structures'], 1, 4, 4, 6),
         ('Transport matériel', 'Logistique',
-         competences_ids['Transport matériel'], 1, 4, 2, 3),
+         competences_ids['Transport matériel'], 5, 8, 2, 3),
         ('Rangement final', 'Logistique',
-         competences_ids['Gestion stocks'], 16, 17, 3, 5),
+         competences_ids['Gestion stocks'], 38, 39, 3, 5),
     ]
 
     # Jobs Sécurité (Pôle Sécurité)
     jobs_securite = [
         ('Surveillance générale Jour', 'Sécurité',
-         competences_ids['Surveillance publique'], 1, 6, 3, 4),
+         competences_ids['Surveillance publique'], 16, 24, 3, 4),
         ('Surveillance Nuit', 'Sécurité',
-         competences_ids['Surveillance publique'], 21, 24, 2, 3),
-        ('Poste secours', 'Sécurité', competences_ids['PSE1'], 1, 17, 2, 2),
+         competences_ids['Surveillance publique'], 28, 30, 2, 3),
+        ('Poste secours', 'Sécurité', competences_ids['PSE1'], 16, 24, 2, 2),
     ]
 
     # Jobs Animation (Pôle Soirée)
     jobs_animation = [
         ('Animation micro tournoi', 'Soirée',
-         competences_ids['Animation micro'], 1, 6, 1, 1),
-        ('DJ Soirée', 'Soirée', competences_ids['DJ/Musique'], 18, 24, 1, 2),
+         competences_ids['Animation micro'], 16, 24, 1, 1),
+        ('DJ Soirée', 'Soirée', competences_ids['DJ/Musique'], 25, 30, 1, 2),
         ('Animation jeux', 'Soirée',
-         competences_ids['Animation jeux'], 18, 21, 2, 3),
+         competences_ids['Animation jeux'], 25, 27, 2, 3),
     ]
 
-    for nom_job, pole_nom, id_comp, creneau_debut, creneau_fin, nb_min, nb_max in jobs_bar + jobs_cuisine + jobs_arbitrage + jobs_logistique + jobs_securite + jobs_animation:
-        for idx_creneau in range(creneau_debut, creneau_fin + 1):
-            if idx_creneau < len(creneaux):
-                id_creneau = creneaux[idx_creneau][0]
+    for nom_job, pole_nom, id_comp, creneau_debut, creneau_fin, nb_min, nb_max in (
+        jobs_bar + jobs_cuisine + jobs_arbitrage +
+            jobs_logistique + jobs_securite + jobs_animation
+    ):
+        for id_creneau in range(creneau_debut, creneau_fin + 1):
+            if id_creneau in creneaux_par_id:
                 jobs.append((
-                    f"{nom_job} - {creneaux[idx_creneau][1]} {creneaux[idx_creneau][2]}",
+                    nom_job,
                     pole_ids.get(pole_nom),
                     id_comp,
                     id_creneau,
