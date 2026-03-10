@@ -1,0 +1,13 @@
+{
+  "name": "msb-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MSB monorepo launcher scripts",
+  "scripts": {
+    "install:all": "npm --prefix apps/frontend install && npm --prefix apps/api install",
+    "build:frontend": "npm --prefix apps/frontend run build",
+    "start:api": "npm --prefix apps/api run start",
+    "start:all": "npm --prefix apps/api run start:all",
+    "test": "echo \"No root tests configured\""
+  }
+}

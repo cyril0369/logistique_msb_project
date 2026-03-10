@@ -1,19 +1,19 @@
 console.log("Connecting to DB...");
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 console.log("DB URL:", process.env.DATABASE_URL);
 
-const path = require("path");
 const nodemailer = require("nodemailer");
 const { spawn } = require("child_process");
 const fs = require("fs");
 
-const FRONTEND_BUILD_DIR = process.env.FRONTEND_BUILD_DIR || path.join(__dirname, "..", "_tmp_front_end_visuals", "build");
+const FRONTEND_BUILD_DIR = process.env.FRONTEND_BUILD_DIR || path.join(__dirname, "..", "frontend", "build");
 const FRONTEND_INDEX_FILE = path.join(FRONTEND_BUILD_DIR, "index.html");
 
 function sendFrontendApp(res) {
   if (!fs.existsSync(FRONTEND_INDEX_FILE)) {
     return res.status(503).send(
-      "Frontend build is missing. Run `npm --prefix ../_tmp_front_end_visuals run build` from secure-login."
+      "Frontend build is missing. Run `npm --prefix ../frontend run build` from apps/api."
     );
   }
   return res.sendFile(FRONTEND_INDEX_FILE);
@@ -99,6 +99,7 @@ function resolvePythonBin() {
     process.env.PYTHON_BIN,
     path.join(__dirname, ".venv", "bin", "python"),
     path.join(__dirname, "..", ".venv", "bin", "python"),
+    path.join(__dirname, "..", "..", ".venv", "bin", "python"),
     "python3",
   ].filter(Boolean);
 
@@ -282,34 +283,11 @@ async function upsertStaffAnswers(dbClient, userId, answers) {
   );
 }
 
-/*
-
 async function ensureSchedulingSchema() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS creneaux (
-      id SERIAL PRIMARY KEY,
-      day_of_week VARCHAR(10) NOT NULL CHECK (day_of_week IN ('vendredi', 'samedi', 'dimanche')),
-      start_hour INTEGER NOT NULL CHECK (start_hour >= 0 AND start_hour <= 23),
-      end_hour INTEGER NOT NULL CHECK (end_hour >= 1 AND end_hour <= 24 AND end_hour > start_hour),
-      label VARCHAR(120),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE (day_of_week, start_hour, end_hour)
-    );
-  `);
-
-  await pool.query(`
-    INSERT INTO creneaux (day_of_week, start_hour, end_hour, label)
-    SELECT
-      d.day_name,
-      h,
-      h + 1,
-      INITCAP(d.day_name) || ' ' || LPAD(h::text, 2, '0') || ':00-' || LPAD((h + 1)::text, 2, '0') || ':00'
-    FROM (VALUES ('vendredi'), ('samedi'), ('dimanche')) AS d(day_name)
-    CROSS JOIN generate_series(0, 23) AS h
-    ON CONFLICT (day_of_week, start_hour, end_hour) DO NOTHING;
-  `);
+  const schemaPath = path.join(__dirname, "schema.sql");
+  const schemaSql = fs.readFileSync(schemaPath, "utf8");
+  await pool.query(schemaSql);
 }
-*/
 
 app.use(
   session({
