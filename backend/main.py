@@ -218,6 +218,83 @@ def get_personne(id_personne: int, conn=Depends(get_db)):
     return personne
 
 
+@app.get("/competences")
+def get_competences(conn=Depends(get_db)):
+    """Retourne toutes les compétences disponibles"""
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id_competence, nom_competence, categorie FROM competence ORDER BY categorie, nom_competence")
+    competences = cursor.fetchall()
+    cursor.close()
+    return competences
+
+
+@app.get("/creneaux")
+def get_creneaux(conn=Depends(get_db)):
+    """Retourne tous les créneaux disponibles"""
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id_creneau, jour, heure_debut, heure_fin, libelle FROM creneau ORDER BY jour, heure_debut")
+    creneaux = cursor.fetchall()
+    cursor.close()
+    return creneaux
+
+
+class StaffeurSignupData(BaseModel):
+    id_personne: int
+    type_staff: str
+    preference_heures_max: Optional[int] = None
+    contrainte_heures_consecutives_max: Optional[int] = None
+    remarques_staff: Optional[str] = None
+    competences: list[int] = []
+    disponibilites: list[int] = []
+
+
+@app.post("/staffeur")
+def create_staffeur(data: StaffeurSignupData, conn=Depends(get_db)):
+    """Crée un staffeur avec ses compétences et disponibilités"""
+    cursor = conn.cursor()
+    try:
+        # Insérer dans staffeur
+        cursor.execute(
+            """
+            INSERT INTO staffeur (id_personne, type_staff, preference_heures_max,
+            contrainte_heures_consecutives_max, remarques_staff)
+            VALUES (%s, %s::type_staff_type, %s, %s, %s)
+            RETURNING id_staffeur
+            """,
+            (data.id_personne, data.type_staff, data.preference_heures_max,
+             data.contrainte_heures_consecutives_max, data.remarques_staff)
+        )
+        id_staffeur = cursor.fetchone()["id_staffeur"]
+
+        # Insérer compétences
+        for id_competence in data.competences:
+            cursor.execute(
+                """INSERT INTO staffeur_competence (id_staffeur, id_competence)
+                   VALUES (%s, %s) ON CONFLICT DO NOTHING""",
+                (id_staffeur, id_competence)
+            )
+
+        # Insérer disponibilités
+        for id_creneau in data.disponibilites:
+            cursor.execute(
+                """INSERT INTO staffeur_disponibilite (id_staffeur, id_creneau)
+                   VALUES (%s, %s) ON CONFLICT DO NOTHING""",
+                (id_staffeur, id_creneau)
+            )
+
+        conn.commit()
+        cursor.close()
+        return {"message": "Staffeur créé avec succès", "id_staffeur": id_staffeur}
+
+    except Exception as e:
+        conn.rollback()
+        cursor.close()
+        raise HTTPException(
+            status_code=500, detail=f"Erreur lors de la création du staffeur: {str(e)}")
+
+
 @app.get("/edt/{id_personne}")
 def get_edt_personne(id_personne: int, conn=Depends(get_db)):
     cursor = conn.cursor()
