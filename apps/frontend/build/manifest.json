@@ -1,0 +1,15 @@
+{
+  "short_name": "MSB",
+  "name": "MSB",
+  "icons": [
+    {
+      "src": "static/media/464515b70379eaca6faa8af8ddfae9b805a7bb96.f8286ef1f82314cee158.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

@@ -1,0 +1,57 @@
+# --- Node.js ---
+node_modules/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+
+# Environnements virtuels
+.env/
+.venv/
+env/
+venv/
+
+# Fichiers temporaires
+*.log
+*.tmp
+*.temp
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# --- Systèmes ---
+.DS_Store
+Thumbs.db
+
+# --- CSV / Excel de travail ---
+*.csv
+*.xlsx
+*.xls
+
+# (Si tu veux versionner un fichier précis, retire-le d’ici)
+
+# --- Sorties / exports ---
+outputs/
+export/
+reports/
+
+# --- Config locales ---
+*.env
+*.ini
+*.cfg
+
+# --- IDE ---
+.vscode/
+.idea/
+
+# --- données volumineuses ---
+data/raw/
+data/tmp/
+
+# node
+node_modules/
+.node_modules/

@@ -1,0 +1,633 @@
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* --- Variables de couleurs --- */
+:root {
+  /* Primaires */
+  --BLEU_PRINCIPAL: #3A798D;
+  --BEIGE: #E4C491;
+  
+  /* Neutres */
+  --NOIR: #0D0D0D;
+  --GRIS_FONCE: #4A4A4A;
+  --GRIS_MOYEN: #8C8C8C;
+  --GRIS_CLAIR: #D9D9D9;
+  --BLANC_CASSE: #F5F5F5;
+  
+  /* Secondaires */
+  --TURQUOISE: #50D4BC;
+  --ROUGE: #E16369;
+  --LILA: #BAC5E7;
+  --BLEU_CANARD: #10564F;
+}
+
+/* --- Typographie Titres (Montserrat) --- */
+h1 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 100%;
+  margin: 0;
+}
+
+h2 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 100%;
+  margin: 0;
+}
+
+h3 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 100%;
+  margin: 0;
+}
+
+h4 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 100%;
+  margin: 0;
+}
+
+/* --- Typographie Sous-titres (Oswald) --- */
+.sous-titre-1 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 120%;
+}
+
+.sous-titre-2 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 120%;
+}
+
+/* --- Typographie Textes (Inter) --- */
+.corps-1 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 150%;
+}
+
+.corps-2 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 150%;
+}
+
+.legende {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 140%;
+}
+
+/* --- CSS Reset --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* --- Pages --- */
+.Page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 16px;
+  gap: 32px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+ 
+/* --- Desktop --- */
+.desktop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 80px;
+  background: var(--BLEU_PRINCIPAL);
+  padding: 16px 24px;
+}
+
+
+.hamburger-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  z-index: 1250;
+}
+
+.hamburger-icon {
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  transition: transform 180ms ease, opacity 150ms ease;
+}
+
+.hamburger-icon:hover {
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  transition: transform 180ms ease, opacity 150ms ease;
+}
+
+.icon-close {
+  opacity: 0;
+  transform: rotate(-90deg);
+}
+
+.hamburger-btn.open .icon-menu {
+  opacity: 0;
+  transform: rotate(90deg);
+}
+
+.hamburger-btn.open .icon-close {
+  opacity: 1;
+  transform: rotate(0deg);
+}
+
+.hamburger-menu {
+  color: var(--BEIGE);
+  width: 28px;
+  height: 28px;
+}
+
+.LogoDesktop {
+  cursor: pointer;
+  width: 48px;
+  height: 48px;
+}
+
+.LogoDesktop:hover {
+  cursor: pointer;
+  width: 55px;
+  height: 55px;
+}
+
+
+.icon-connexion {
+  color: var(--BEIGE);
+  width: 28px;
+  height: 28px;
+}
+
+.sidebar-profil {
+  color: var(--BEIGE);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--BLEU_PRINCIPAL);
+  position: absolute;
+  width: 320px;
+  height: calc(100vh - 80px);
+  top: 80px;
+  right: 0;
+  gap: 16px;
+  opacity: 1;
+  padding: 32px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sidebar {
+  color: var(--BEIGE);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--BLEU_PRINCIPAL);
+  position: absolute;
+  width: 320px;
+  height: calc(100vh - 80px);
+  top: 80px;
+  gap: 16px;
+  opacity: 1;
+  padding: 32px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sidebar.Hidden {
+  display: none;
+}
+
+.sidebar-profil.Hidden {
+  display: none;
+}
+
+.menu-item,
+.menu-header,
+.submenu-item {
+  background: transparent;
+  border: none;
+  color: var(--BEIGE);
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.menu-item {
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 100%;
+}
+
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 100%;
+}
+
+.menu-title {
+  display: inline-block;
+}
+
+.chevron {
+  display: inline-block;
+  transform: rotate(-90deg);
+  transition: transform 180ms ease;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.chevron.open {
+  transform: rotate(0deg);
+}
+
+.submenu {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 24px;
+}
+
+.submenu.open {
+  display: flex;
+}
+
+.submenu-item {
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 100%;
+}
+
+.main-accueil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.image-accueil {
+  position: fixed;
+  object-position: center 80px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.3;
+  z-index: -1;
+}
+
+.info-accueil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 48px;
+}
+
+.info1 {
+  display: flex;
+  gap: 80px;
+}
+
+.element {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.info-accueil h1 {
+  size: 48px;
+  color: var(--BLEU_PRINCIPAL);
+}
+
+.info-accueil h4 {
+  font-weight: bold;
+  size: 32px;
+  color: var(--BLEU_CANARD);
+}
+
+.info-accueil h3 {
+  size: 28px;
+  color: var(--BLEU_CANARD);
+}
+
+.icon {
+  color: var(--BLEU_CANARD);
+  width: 40px;
+  height: 40px;
+}
+
+.icon-app {
+  color: var(--BLEU_CANARD);
+  width: 50px;
+  height: 50px;
+}
+
+.titre-button {
+  color: var(--BEIGE);
+}
+
+
+/* --- Formulaire de connexion --- */
+
+.main-connection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.Formulaire {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 500px;
+  padding: 24px;
+  gap: 30px;
+  border-radius: 8px;
+}
+
+.Formulaire h1 {
+  text-align: center;
+}
+
+.titre-sous-titre h1 {
+  color: var(--BLEU_PRINCIPAL);
+}
+
+.Formulaire .block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.Formulaire .input-text {
+  width: 400px;
+  height: 40px;
+  border-radius: 12px;
+  border: 0;
+  background: var(--GRIS_CLAIR);
+  padding: 10px;
+}
+
+.champ-de-saisie {
+  width: 400px;
+  align-items: flex-start !important;
+}
+
+.champ-de-saisie .corps-2 {
+  margin-bottom: 4px;
+  margin-top: 8px;
+}
+
+.button-mdp-oublier {
+  width: 215px;
+  height: 126px;
+  gap: 24px;
+  opacity: 1;
+  padding: 12px;
+}
+
+.cases-a-cocher {
+  display: flex;
+  width: 400px;
+  height: 24px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.case-a-cocher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 88px;
+  height: 24px;
+  gap: 12px;
+}
+
+.case-a-cocher p {
+    white-space: nowrap;
+}
+
+.cases {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+}
+
+.se-connecter {
+  color: var(--BEIGE);
+  background-color: var(--BLEU_PRINCIPAL);
+  width: auto;
+  height: 52px;
+  padding-right: 28px;
+  padding-left: 28px;
+  gap: 10px;
+  opacity: 1;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+}
+
+.se-connecter h4 {
+  white-space: nowrap;
+}
+
+.planning-trois-jours {
+  display: flex;
+  flex-direction: row;
+  gap: 32px
+}
+
+.planning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.heure {
+  width: 10px;
+}
+
+.creneau {
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.tache {
+  background-color: var(--GRIS_CLAIR);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 340px;
+  height: 80px;
+  border-radius: 20px;
+  opacity: 1;
+  padding: 16px;
+}
+
+.occupe {
+  background-color: var(--ROUGE);
+}
+
+.journee {
+  text-align: center;
+}
+
+.ListeGoodies {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 1000px;
+    padding: 24px;
+    gap: 32px;
+    border-radius: 8px;
+}
+
+.info {
+  padding-top: 32px;
+}
+
+.prix {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.article {
+  display: flex;
+  gap: 32px;
+}
+
+.article img {
+  max-width: 400px;
+  height: auto;
+  object-fit: contain;
+}
+
+.article input {
+  width: 400px;
+  height: 40px;
+}
+
+.selector {
+  padding: 12px 0px 12px 0px ;
+}
+
+
+.info-msb {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 1140px;
+  padding: 24px;
+  gap: 40px;
+  border-radius: 8px;
+}
+
+.block-image {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 50px
+}
+
+.petite-images{
+  height: 100px;
+}
+
+.grande-images{
+  width: 1140px;
+}
+
+.block-info {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.block-info h2 {
+  color: var(--BEIGE);
+}
+
+.block-info .signature {
+  text-align: end;
+}
+
+.block-info .textes {
+  text-align: justify;
+}
