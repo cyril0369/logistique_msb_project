@@ -10,6 +10,7 @@ Table users {
   phone varchar(20)
   gender varchar(10)
   is_admin integer [default: 0]
+  is_staff integer [default: 0]
   created_at timestamp [default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [default: `CURRENT_TIMESTAMP`]
 }
@@ -24,6 +25,10 @@ Table goodies_orders {
   id serial [pk]
   user_id integer [ref: > users.id, note: "ON DELETE CASCADE"]
   tshirt_qty integer [default: 0]
+  bob_qty integer [default: 0]
+  short_qty integer [default: 0]
+  maillot_qty integer [default: 0]
+  gourde_qty integer [default: 0]
   gourd_qty integer [default: 0]
   goodie3_qty integer [default: 0]
   created_at timestamp [default: `CURRENT_TIMESTAMP`]
@@ -32,6 +37,12 @@ Table goodies_orders {
 Table staff {
   id serial [pk]
   user_id integer [unique, ref: > users.id, note: "ON DELETE CASCADE"]
+  username_snapshot varchar(255)
+  email_snapshot varchar(255)
+  first_name_snapshot varchar(255)
+  last_name_snapshot varchar(255)
+  phone_snapshot varchar(20)
+  staff_code_validated integer [default: 0]
   bar integer [default: 0]
   cuisine integer [default: 0]
   arbitre_beach_rugby integer [default: 0]

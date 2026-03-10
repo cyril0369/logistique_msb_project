@@ -2,8 +2,11 @@
   "name": "secure-login",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
+    "build:frontend": "npm --prefix ../_tmp_front_end_visuals run build",
+    "start:all": "npm run build:frontend && npm run start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -7,8 +7,20 @@ const nodemailer = require("nodemailer");
 const { spawn } = require("child_process");
 const fs = require("fs");
 
+const FRONTEND_BUILD_DIR = process.env.FRONTEND_BUILD_DIR || path.join(__dirname, "..", "_tmp_front_end_visuals", "build");
+const FRONTEND_INDEX_FILE = path.join(FRONTEND_BUILD_DIR, "index.html");
+
+function sendFrontendApp(res) {
+  if (!fs.existsSync(FRONTEND_INDEX_FILE)) {
+    return res.status(503).send(
+      "Frontend build is missing. Run `npm --prefix ../_tmp_front_end_visuals run build` from secure-login."
+    );
+  }
+  return res.sendFile(FRONTEND_INDEX_FILE);
+}
+
 function requireAuth(req, res, next) {
-  if (!req.session.userId) return res.status(401).sendFile(path.join(__dirname, "public", "error-401.html"));
+  if (!req.session.userId) return res.status(401).json({ error: "Authentication required" });
   next();
 }
 
@@ -18,7 +30,7 @@ async function requireAdmin(req, res, next) {
   ]);
   if (result.rows.length === 0) return res.status(400).send("Utilisateur introuvable");
   const user = result.rows[0];
-  if (!user.is_admin) return res.status(403).sendFile(path.join(__dirname, "public", "error-403.html"));
+  if (!user.is_admin) return res.status(403).json({ error: "Admin access required" });
   next();
 
 }
@@ -27,7 +39,7 @@ async function requireStaff(req, res, next) {
   const result = await pool.query("SELECT 1 FROM staff WHERE user_id=$1 LIMIT 1", [
     req.session.userId,
   ]);
-  if (result.rows.length === 0) return res.status(403).sendFile(path.join(__dirname, "public", "error-403-staff.html"));
+  if (result.rows.length === 0) return res.status(403).json({ error: "Staff access required" });
   next();
 
 }
@@ -48,8 +60,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(FRONTEND_BUILD_DIR));
 
 
 function getcookie(req) {
@@ -162,7 +173,7 @@ function runPlanningScript(scriptName, options = {}) {
   });
 }
 
-/*const mailTransporter = process.env.SMTP_HOST
+const mailTransporter = process.env.SMTP_HOST
   ? nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || "587", 10),
@@ -180,7 +191,6 @@ async function sendStaffEmail({ to, subject, text }) {
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
   return mailTransporter.sendMail({ from, to, subject, text });
 }
-*/
 
 const ALLOWED_DAYS = ["vendredi", "samedi", "dimanche"];
 
@@ -193,6 +203,84 @@ const STAFF_TYPE_MAP = {
   6: "arbitre_dodgeball",
   7: "arbitre_handball",
 };
+
+function parseStaffSignupAnswers(body = {}, options = {}) {
+  const {
+    validatedStaffCode = false,
+    username = null,
+    email = null,
+    firstName = null,
+    lastName = null,
+    phone = null,
+  } = options;
+
+  const staffTypeRaw = body.staff_type || null;
+  const normalizedStaffType =
+    staffTypeRaw && ["jour", "nuit", "mixte"].includes(String(staffTypeRaw).toLowerCase())
+      ? String(staffTypeRaw).toLowerCase()
+      : null;
+
+  const toInt = (value) =>
+    value === true || value === "true" || value === "on" || value === 1 || value === "1" ? 1 : 0;
+
+  return {
+    staffType: normalizedStaffType,
+    staff_code_validated: validatedStaffCode ? 1 : 0,
+    username_snapshot: username,
+    email_snapshot: email,
+    first_name_snapshot: firstName,
+    last_name_snapshot: lastName,
+    phone_snapshot: phone,
+    bar: toInt(body.tireuse),
+    cuisine: toInt(body.cuisine),
+    arbitre_beach_rugby: toInt(body.arbitre_beach_rugby),
+    arbitre_beach_soccer: toInt(body.arbitre_beach_soccer),
+    arbitre_beach_volley: toInt(body.arbitre_beach_volley),
+    arbitre_dodgeball: toInt(body.arbitre_dodgeball),
+    arbitre_handball: toInt(body.arbitre_handball),
+  };
+}
+
+async function upsertStaffAnswers(dbClient, userId, answers) {
+  await dbClient.query(
+    `INSERT INTO staff (user_id, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer, arbitre_beach_volley, arbitre_dodgeball, arbitre_handball, staff_type, staff_code_validated, username_snapshot, email_snapshot, first_name_snapshot, last_name_snapshot, phone_snapshot)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+     ON CONFLICT (user_id) DO UPDATE SET 
+       bar = EXCLUDED.bar,
+       cuisine = EXCLUDED.cuisine,
+       arbitre_beach_rugby = EXCLUDED.arbitre_beach_rugby,
+       arbitre_beach_soccer = EXCLUDED.arbitre_beach_soccer,
+       arbitre_beach_volley = EXCLUDED.arbitre_beach_volley,
+       arbitre_dodgeball = EXCLUDED.arbitre_dodgeball,
+       arbitre_handball = EXCLUDED.arbitre_handball,
+       staff_type = EXCLUDED.staff_type,
+       staff_code_validated = EXCLUDED.staff_code_validated,
+       username_snapshot = EXCLUDED.username_snapshot,
+       email_snapshot = EXCLUDED.email_snapshot,
+       first_name_snapshot = EXCLUDED.first_name_snapshot,
+       last_name_snapshot = EXCLUDED.last_name_snapshot,
+       phone_snapshot = EXCLUDED.phone_snapshot,
+       updated_at = CURRENT_TIMESTAMP
+    `,
+    [
+      userId,
+      answers.bar,
+      answers.cuisine,
+      answers.arbitre_beach_rugby,
+      answers.arbitre_beach_soccer,
+      answers.arbitre_beach_volley,
+      answers.arbitre_dodgeball,
+      answers.arbitre_handball,
+      answers.staffType,
+      answers.staff_code_validated,
+      answers.username_snapshot,
+      answers.email_snapshot,
+      answers.first_name_snapshot,
+      answers.last_name_snapshot,
+      answers.phone_snapshot,
+    ]
+  );
+}
 
 /*
 
@@ -237,41 +325,58 @@ app.use(
 );
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/goodies", (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "goodies.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/signup", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "signup.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/signup_admin", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "signup_admin.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/signup_staff", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "signup_staff.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/about_us", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "about_us.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/api/me", requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      "SELECT username, first_name, last_name, is_admin FROM users WHERE id = $1",
+      `SELECT
+         u.id,
+         u.username,
+         u.first_name,
+         u.last_name,
+         u.email,
+         u.is_admin,
+         EXISTS(SELECT 1 FROM staff s WHERE s.user_id = u.id) AS is_staff
+       FROM users u
+       WHERE u.id = $1`,
       [req.session.userId]
     );
-    if (!rows.length) return res.status(404).send("Utilisateur introuvable");
-    return res.json(rows[0]);
+    if (!rows.length) return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    const user = rows[0];
+    const role = user.is_admin ? "TeamMSB" : user.is_staff ? "Staff" : "Participant";
+    return res.json({
+      ...user,
+      is_admin: !!user.is_admin,
+      is_staff: !!user.is_staff,
+      role,
+    });
   } catch (e) {
     next(e);
   }
@@ -353,6 +458,7 @@ app.post("/signup_admin", async (req, res, next) => {
 });
 
 app.post("/signup_staff", async (req, res, next) => {
+  const client = await pool.connect();
   try {
     const { username, password, first_name, last_name, email, phone} = req.body;
     const staff_code = req.body.staff_code;
@@ -362,49 +468,25 @@ app.post("/signup_staff", async (req, res, next) => {
     if (staff_code !== process.env.STAFF_CODE) {
       return res.status(403).send("Code staff invalide");
     }
+    await client.query("BEGIN");
     const hashed = await bcrypt.hash(password, 10);
-    const result = await pool.query(
-      `INSERT INTO users (username, password_hash, first_name, last_name, email, phone)
-        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [username.trim(), hashed, first_name.trim(), last_name.trim(), email.trim(), phone?.trim()]
+    const result = await client.query(
+      `INSERT INTO users (username, password_hash, first_name, last_name, email, phone, is_staff)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [username.trim(), hashed, first_name.trim(), last_name.trim(), email.trim(), phone?.trim(), 1]
     );
     
     const userId = result.rows[0].id;
-
-    const staffTypeRaw = req.body.staff_type || null;
-    const staffType = staffTypeRaw && ["jour","nuit","mixte"].includes(String(staffTypeRaw).toLowerCase())
-      ? String(staffTypeRaw).toLowerCase()
-      : null;
-
-    const toInt = (v) => (v === true || v === "true" || v === "on" || v === 1 || v === "1" ? 1 : 0);
-    const bar = toInt(req.body.tireuse);
-    const cuisine = toInt(req.body.cuisine);
-    const arbitre_beach_rugby = toInt(req.body.arbitre_beach_rugby);
-    const arbitre_beach_soccer = toInt(req.body.arbitre_beach_soccer);
-    const arbitre_beach_volley = toInt(req.body.arbitre_beach_volley);
-    const arbitre_dodgeball = toInt(req.body.arbitre_dodgeball);
-    const arbitre_handball = toInt(req.body.arbitre_handball);
-
-    try {
-      await pool.query(
-        `INSERT INTO staff (user_id, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer, arbitre_beach_volley, arbitre_dodgeball, arbitre_handball, staff_type)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-         ON CONFLICT (user_id) DO UPDATE SET 
-           bar = EXCLUDED.bar,
-           cuisine = EXCLUDED.cuisine,
-           arbitre_beach_rugby = EXCLUDED.arbitre_beach_rugby,
-           arbitre_beach_soccer = EXCLUDED.arbitre_beach_soccer,
-           arbitre_beach_volley = EXCLUDED.arbitre_beach_volley,
-           arbitre_dodgeball = EXCLUDED.arbitre_dodgeball,
-           arbitre_handball = EXCLUDED.arbitre_handball,
-           staff_type = EXCLUDED.staff_type,
-           updated_at = CURRENT_TIMESTAMP
-        `,
-        [userId, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer, arbitre_beach_volley, arbitre_dodgeball, arbitre_handball, staffType]
-      );
-    } catch (staffErr) {
-      console.error("Staff insertion failed:", staffErr?.message);
-    }
+    const staffAnswers = parseStaffSignupAnswers(req.body, {
+      validatedStaffCode: true,
+      username: username.trim(),
+      email: email.trim(),
+      firstName: first_name.trim(),
+      lastName: last_name.trim(),
+      phone: phone?.trim() || null,
+    });
+    await upsertStaffAnswers(client, userId, staffAnswers);
+    await client.query("COMMIT");
 
     req.session.regenerate((err) => {
       if (err) return next(err);
@@ -417,10 +499,17 @@ app.post("/signup_staff", async (req, res, next) => {
       });
     });
   } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackErr) {
+      console.error("Signup staff rollback failed:", rollbackErr?.message);
+    }
     if (err.code === "23505") {
       return res.status(400).send("Cet utilisateur existe déjà.");
     }
     return next(err);
+  } finally {
+    client.release();
   }
 });
 
@@ -445,36 +534,15 @@ app.post("/forgot-password", async (req, res, next) => {
     
 
     try {
-      const staffTypeRaw = req.body.staff_type || null;
-      const staffType = staffTypeRaw && ["jour","nuit","mixte"].includes(String(staffTypeRaw).toLowerCase())
-        ? String(staffTypeRaw).toLowerCase()
-        : null;
-
-      const toInt = (v) => (v === true || v === "true" || v === "on" || v === 1 || v === "1" ? 1 : 0);
-      const bar = toInt(req.body.tireuse);
-      const cuisine = toInt(req.body.cuisine);
-      const arbitre_beach_rugby = toInt(req.body.arbitre_beach_rugby);
-      const arbitre_beach_soccer = toInt(req.body.arbitre_beach_soccer);
-      const arbitre_beach_volley = toInt(req.body.arbitre_beach_volley);
-      const arbitre_dodgeball = toInt(req.body.arbitre_dodgeball);
-      const arbitre_handball = toInt(req.body.arbitre_handball);
-
-      await pool.query(
-        `INSERT INTO staff (user_id, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer, arbitre_beach_volley, arbitre_dodgeball, arbitre_handball, staff_type)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-         ON CONFLICT (user_id) DO UPDATE SET 
-           bar = EXCLUDED.bar,
-           cuisine = EXCLUDED.cuisine,
-           arbitre_beach_rugby = EXCLUDED.arbitre_beach_rugby,
-           arbitre_beach_soccer = EXCLUDED.arbitre_beach_soccer,
-           arbitre_beach_volley = EXCLUDED.arbitre_beach_volley,
-           arbitre_dodgeball = EXCLUDED.arbitre_dodgeball,
-           arbitre_handball = EXCLUDED.arbitre_handball,
-           staff_type = EXCLUDED.staff_type,
-           updated_at = CURRENT_TIMESTAMP
-        `,
-        [userId, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer, arbitre_beach_volley, arbitre_dodgeball, arbitre_handball, staffType]
-      );
+      const staffAnswers = parseStaffSignupAnswers(req.body, {
+        validatedStaffCode: false,
+        username: null,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: null,
+        phone: null,
+      });
+      await upsertStaffAnswers(pool, user.id, staffAnswers);
     } catch (staffErr) {
       console.error("Staff extra fields insertion failed:", staffErr?.message);
     }
@@ -553,23 +621,26 @@ app.post("/login", noCache, async (req, res, next) => {
 
 
 app.get("/order_detail", requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "order_detail.html"));
+  return sendFrontendApp(res);
 });
 
 app.post("/api/orders", requireAuth, noCache, async (req, res, next) => {
   try {
     const tshirt = Math.max(0, parseInt(req.body.tshirt_qty ?? "0", 10) || 0);
-    const gourd  = Math.max(0, parseInt(req.body.gourd_qty ?? "0", 10) || 0);
-    const goodie3 = Math.max(0, parseInt(req.body.goodie3_qty ?? "0", 10) || 0);
+    const bob = Math.max(0, parseInt(req.body.bob_qty ?? req.body.goodie3_qty ?? "0", 10) || 0);
+    const shortQty = Math.max(0, parseInt(req.body.short_qty ?? "0", 10) || 0);
+    const maillotQty = Math.max(0, parseInt(req.body.maillot_qty ?? "0", 10) || 0);
+    const gourde = Math.max(0, parseInt(req.body.gourde_qty ?? req.body.gourd_qty ?? "0", 10) || 0);
+    const legacyGoodie3 = bob;
 
-    if (tshirt + gourd + goodie3 === 0) {
+    if (tshirt + bob + shortQty + maillotQty + gourde === 0) {
       return res.status(400).send("Veuillez commander au moins un article.");
     }
 
     await pool.query(
-      `INSERT INTO goodies_orders (user_id, tshirt_qty, gourd_qty, goodie3_qty)
-       VALUES ($1, $2, $3, $4)`,
-      [req.session.userId, tshirt, gourd, goodie3]
+      `INSERT INTO goodies_orders (user_id, tshirt_qty, bob_qty, short_qty, maillot_qty, gourde_qty, gourd_qty, goodie3_qty)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [req.session.userId, tshirt, bob, shortQty, maillotQty, gourde, gourde, legacyGoodie3]
     );
 
     res.status(201).send("Commande enregistrée !");
@@ -583,7 +654,11 @@ app.get("/api/orders/summary", requireAuth, requireAdmin, async (req, res, next)
     const { rows } = await pool.query(`
       SELECT
         COALESCE(SUM(tshirt_qty), 0) AS tshirts,
-        COALESCE(SUM(gourd_qty), 0)  AS gourds,
+        COALESCE(SUM(bob_qty), 0) AS bobs,
+        COALESCE(SUM(short_qty), 0) AS shorts,
+        COALESCE(SUM(maillot_qty), 0) AS maillots,
+        COALESCE(SUM(gourde_qty), 0) AS gourdes,
+        COALESCE(SUM(gourd_qty), 0) AS gourds,
         COALESCE(SUM(goodie3_qty), 0) AS goodie3
       FROM goodies_orders
     `);
@@ -601,6 +676,10 @@ app.get("/api/orders/detail", requireAuth, requireAdmin, async (req, res, next) 
         u.last_name,
         u.username,
         o.tshirt_qty,
+        o.bob_qty,
+        o.short_qty,
+        o.maillot_qty,
+        o.gourde_qty,
         o.gourd_qty,
         o.goodie3_qty,
         o.created_at
@@ -615,15 +694,15 @@ app.get("/api/orders/detail", requireAuth, requireAdmin, async (req, res, next) 
 });
 
 app.get("/orders", requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "orders.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/users", requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "users.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/documents", requireAuth, requireStaff, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "documents.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/api/users", requireAuth, requireAdmin, async (req, res, next) => {
@@ -658,19 +737,19 @@ app.delete("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =
 });
 
 app.get("/jobs", requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "jobs.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/admin/scripts", requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "scripts_admin.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/admin/poules", requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "poules_overview.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/admin/poules/:sportId", requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "poules_sport.html"));
+  return sendFrontendApp(res);
 });
 
 app.get("/api/admin/poules/sports", requireAuth, requireAdmin, async (req, res, next) => {
@@ -1037,9 +1116,42 @@ app.delete("/api/jobs/:id", requireAuth, requireAdmin, async (req, res, next) =>
   }
 });
 
-app.get("/api/my-schedule", requireAuth, requireStaff, async (req, res, next) => {
+app.get("/api/my-schedule", requireAuth, async (req, res, next) => {
   try {
     const userId = req.session.userId;
+
+    if (req.session.is_admin) {
+      const { rows } = await pool.query(
+        `SELECT
+           j.id,
+           j.staff_type,
+           j.description,
+           c.id AS creneau_id,
+           c.day_of_week,
+           c.start_hour,
+           c.end_hour,
+           c.label AS creneau_label
+         FROM jobs j
+         JOIN creneaux c ON c.id = j.creneau
+         ORDER BY
+           CASE c.day_of_week
+             WHEN 'vendredi' THEN 1
+             WHEN 'samedi' THEN 2
+             WHEN 'dimanche' THEN 3
+             ELSE 99
+           END,
+           c.start_hour,
+           c.end_hour,
+           j.staff_type,
+           j.id`
+      );
+      return res.json(rows);
+    }
+
+    if (!req.session.is_staff) {
+      return res.status(403).json({ error: "Staff access required" });
+    }
+
     const { rows } = await pool.query(
       `SELECT
          j.id,
@@ -1075,34 +1187,37 @@ app.get("/session-info", (req, res) => {
   const isAuthenticated = !!req.session?.userId;
   const isAdmin = !!req.session?.is_admin;
   const isStaff = !!req.session?.is_staff;
-  const status = isAuthenticated ? (isAdmin ? "admin" : isStaff ? "staff" : "user") : "guest";
+  const status = isAuthenticated ? (isAdmin ? "TeamMSB" : isStaff ? "Staff" : "Participant") : "guest";
   res.json({ authenticated: isAuthenticated, status, is_admin: isAdmin, is_staff: isStaff });
 });
 
 app.get("/dashboard", requireAuth, noCache, async (req, res, next) => {
-  if (req.session.is_admin) {
-    return res.sendFile(path.join(__dirname, "protected", "dashboard_a.html"));
-  } else if (req.session.is_staff) {
-    return res.sendFile(path.join(__dirname, "protected", "dashboard_s.html"));
-  }
-  res.sendFile(path.join(__dirname, "protected", "dashboard.html"));
+  return sendFrontendApp(res);
 });
 
 app.post("/logout", (req, res, next) => {
-  res.clearCookie('connect.sid');
-  res.send("Déconnexion réussie");  
+  req.session.destroy((err) => {
+    if (err) return next(err);
+    res.clearCookie("connect.sid");
+    return res.json({ message: "Deconnexion reussie" });
+  });
+});
+
+app.get(/^\/(?!api\/).*/, (req, res) => {
+  return sendFrontendApp(res);
 });
 
 
 async function startServer() {
   try {
+    const port = Number.parseInt(process.env.PORT || "80", 10);
     if (typeof ensureSchedulingSchema === "function") {
       await ensureSchedulingSchema();
     } else {
       console.warn("Scheduling schema bootstrap skipped (ensureSchedulingSchema not defined).");
     }
-    app.listen(80, () => {
-      console.log("Server running on http://localhost:80");
+    app.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}`);
     });
   } catch (err) {
     console.error("Failed to initialize DB schema:", err);

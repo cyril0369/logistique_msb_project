@@ -9,6 +9,7 @@ erDiagram
     varchar phone
     varchar gender
     int is_admin
+    int is_staff
     timestamp created_at
     timestamp updated_at
   }
@@ -23,6 +24,10 @@ erDiagram
     int id PK
     int user_id FK
     int tshirt_qty
+    int bob_qty
+    int short_qty
+    int maillot_qty
+    int gourde_qty
     int gourd_qty
     int goodie3_qty
     timestamp created_at
@@ -31,6 +36,12 @@ erDiagram
   staff {
     int id PK
     int user_id FK
+    varchar username_snapshot
+    varchar email_snapshot
+    varchar first_name_snapshot
+    varchar last_name_snapshot
+    varchar phone_snapshot
+    int staff_code_validated
     int bar
     int cuisine
     int arbitre_beach_rugby

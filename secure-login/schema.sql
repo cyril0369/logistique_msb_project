@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   gender VARCHAR(10),
   
   is_admin INTEGER DEFAULT 0,
+  is_staff INTEGER DEFAULT 0,
   
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -37,10 +38,19 @@ CREATE TABLE IF NOT EXISTS goodies_orders (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
   tshirt_qty INTEGER DEFAULT 0,
+  bob_qty INTEGER DEFAULT 0,
+  short_qty INTEGER DEFAULT 0,
+  maillot_qty INTEGER DEFAULT 0,
+  gourde_qty INTEGER DEFAULT 0,
   gourd_qty INTEGER DEFAULT 0,
   goodie3_qty INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE goodies_orders ADD COLUMN IF NOT EXISTS bob_qty INTEGER DEFAULT 0;
+ALTER TABLE goodies_orders ADD COLUMN IF NOT EXISTS short_qty INTEGER DEFAULT 0;
+ALTER TABLE goodies_orders ADD COLUMN IF NOT EXISTS maillot_qty INTEGER DEFAULT 0;
+ALTER TABLE goodies_orders ADD COLUMN IF NOT EXISTS gourde_qty INTEGER DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
@@ -49,6 +59,12 @@ CREATE INDEX IF NOT EXISTS idx_goodies_orders_user_id ON goodies_orders(user_id)
 CREATE TABLE IF NOT EXISTS staff (
   id SERIAL PRIMARY KEY,
   user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  username_snapshot VARCHAR(255),
+  email_snapshot VARCHAR(255),
+  first_name_snapshot VARCHAR(255),
+  last_name_snapshot VARCHAR(255),
+  phone_snapshot VARCHAR(20),
+  staff_code_validated INTEGER DEFAULT 0,
   bar INTEGER DEFAULT 0,
   cuisine INTEGER DEFAULT 0,
   arbitre_beach_rugby INTEGER DEFAULT 0,
@@ -61,6 +77,16 @@ CREATE TABLE IF NOT EXISTS staff (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Backward-compatible schema upgrades for existing databases.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff INTEGER DEFAULT 0;
+
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS username_snapshot VARCHAR(255);
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS email_snapshot VARCHAR(255);
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS first_name_snapshot VARCHAR(255);
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS last_name_snapshot VARCHAR(255);
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS phone_snapshot VARCHAR(20);
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS staff_code_validated INTEGER DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_staff_user_id ON staff(user_id);
 
