@@ -20,27 +20,63 @@ export function AuthProvider({ children }) {
     const savedUser = localStorage.getItem('user');
 
     if (savedToken && savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      
+      // S'assurer que role existe (au cas où ancien localStorage)
+      if (parsedUser && !parsedUser.role && parsedUser.statut) {
+        parsedUser.role = parsedUser.statut;
+      }
+      
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      setUser(parsedUser);
     }
     setLoading(false);
   }, []);
 
-  // ✅ Vrai appel API
-  const login = async (email, password) => {
+  // ✅ Login
+  const login = async (email, mot_de_passe) => {
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const { data } = await api.post('/auth/login', { email, mot_de_passe });
 
-      // Stocke le token et l'user
+      // Mapper statut → role pour compatibilité frontend
+      const userWithRole = {
+        ...data.user,
+        role: data.user.statut
+      };
+
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('user', JSON.stringify(userWithRole));
 
       setToken(data.token);
-      setUser(data.user);
+      setUser(userWithRole);
 
       return data;
     } catch (error) {
       console.error('Login failed:', error);
+      throw error;
+    }
+  };
+
+  // ✅ Signup
+  const signup = async (userData) => {
+    try {
+      const { data } = await api.post('/auth/signup', userData);
+
+      // Mapper statut → role pour compatibilité frontend
+      const userWithRole = {
+        ...data.user,
+        role: data.user.statut
+      };
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(userWithRole));
+
+      setToken(data.token);
+      setUser(userWithRole);
+
+      return data;
+    } catch (error) {
+      console.error('Signup failed:', error);
       throw error;
     }
   };
@@ -53,15 +89,6 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  // ✅ Helper pour mettre à jour le rôle
-  const updateUserRole = (role) => {
-    setUser((prev) => {
-      const updated = { ...prev, role };
-      localStorage.setItem('user', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
   const value = useMemo(
     () => ({
       token,
@@ -69,8 +96,8 @@ export function AuthProvider({ children }) {
       loading,
       isAuthenticated: !!token,
       login,
+      signup,
       logout,
-      updateUserRole,
     }),
     [token, user, loading]
   );
