@@ -10,8 +10,11 @@ def generer_planning(staffeurs, jobs, creneaux):
 
     # pour suivre ce que chaque staffeur a déjà
     heures_par_staff = defaultdict(int)           # combien d'heures il a déjà
-    creneaux_par_staff = defaultdict(list)        # sur quels créneaux il est déjà
-    jobs_par_staff_et_creneau = defaultdict(set)  # pour vérifier max 1 job/créneau
+    # sur quels créneaux il est déjà
+    creneaux_par_staff = defaultdict(list)
+    jobs_par_staff_et_creneau = defaultdict(
+        set)  # pour vérifier max 1 job/créneau
+    creneau_par_id = {c["id_creneau"]: c for c in creneaux}
 
     # on garde l'ordre des créneaux pour calculer les heures consécutives
     ordre_creneaux = [c["id_creneau"] for c in creneaux]
@@ -30,6 +33,14 @@ def generer_planning(staffeurs, jobs, creneaux):
 
             # 1. Pour voir si le staffeur est dispo sur ce créneau
             if id_creneau_job not in staff["dispos"]:
+                continue
+
+            # 1'. vérifier que le créneau est compatible avec le type du staffeur
+            heure_creneau = creneau_par_id[id_creneau_job]["heure_debut"]
+            type_staff = staff["type_staff"]
+            if type_staff == "Jour" and heure_creneau >= "18:00":
+                continue
+            if type_staff == "Nuit" and heure_creneau < "18:00":
                 continue
 
             # 2. il a la compétence requise ?
@@ -75,7 +86,8 @@ def generer_planning(staffeurs, jobs, creneaux):
             # on met à jour les trackers
             heures_par_staff[id_staff] += 1
             creneaux_par_staff[id_staff].append(id_creneau_job)
-            jobs_par_staff_et_creneau[(id_staff, id_creneau_job)].add(job["id_job"])
+            jobs_par_staff_et_creneau[(id_staff, id_creneau_job)].add(
+                job["id_job"])
 
     stats = _calculer_stats(affectations, jobs, staffeurs)
 
@@ -109,13 +121,15 @@ def _calculer_stats(affectations, jobs, staffeurs):
 
     total_besoins = sum(j["nb_staffeurs_min"] for j in jobs)
     total_affectes = len(affectations)
-    taux = round(total_affectes / total_besoins * 100, 1) if total_besoins > 0 else 0
+    taux = round(total_affectes / total_besoins *
+                 100, 1) if total_besoins > 0 else 0
 
     heures_par_staff = defaultdict(int)
     for aff in affectations:
         heures_par_staff[aff["id_staffeur"]] += 1
 
-    moyenne = round(sum(heures_par_staff.values()) / len(staffeurs), 1) if staffeurs else 0
+    moyenne = round(sum(heures_par_staff.values()) /
+                    len(staffeurs), 1) if staffeurs else 0
 
     # on liste les jobs qui n'ont pas eu assez de staffeurs
     affectes_par_job = defaultdict(int)
@@ -222,12 +236,19 @@ def formatter_vue_jobs(affectations, jobs, creneaux):
 if __name__ == "__main__":
 
     creneaux = [
-        {"id_creneau": 1, "jour": "Vendredi",  "heure_debut": "09:00", "heure_fin": "10:00"},
-        {"id_creneau": 2, "jour": "Vendredi",  "heure_debut": "10:00", "heure_fin": "11:00"},
-        {"id_creneau": 3, "jour": "Vendredi",  "heure_debut": "11:00", "heure_fin": "12:00"},
-        {"id_creneau": 4, "jour": "Samedi",    "heure_debut": "09:00", "heure_fin": "10:00"},
-        {"id_creneau": 5, "jour": "Samedi",    "heure_debut": "10:00", "heure_fin": "11:00"},
-        {"id_creneau": 6, "jour": "Dimanche",  "heure_debut": "14:00", "heure_fin": "15:00"},
+        {"id_creneau": 1, "jour": "Vendredi",
+            "heure_debut": "09:00", "heure_fin": "10:00"},
+        {"id_creneau": 2, "jour": "Vendredi",
+            "heure_debut": "10:00", "heure_fin": "11:00"},
+        {"id_creneau": 3, "jour": "Vendredi",
+            "heure_debut": "11:00", "heure_fin": "12:00"},
+        {"id_creneau": 4, "jour": "Samedi",
+            "heure_debut": "09:00", "heure_fin": "10:00"},
+        {"id_creneau": 5, "jour": "Samedi",
+            "heure_debut": "10:00", "heure_fin": "11:00"},
+        {"id_creneau": 6, "jour": "Dimanche",
+            "heure_debut": "14:00", "heure_fin": "15:00"},
+
     ]
 
     staffeurs = [
@@ -236,6 +257,7 @@ if __name__ == "__main__":
             "preference_heures_max": 4,
             "contrainte_heures_consecutives_max": 3,
             "dispos": [1, 2, 3, 4],
+            "type_staff": "Jour",
             "competences": [10, 11]
         },
         {
@@ -243,6 +265,7 @@ if __name__ == "__main__":
             "preference_heures_max": 6,
             "contrainte_heures_consecutives_max": 4,
             "dispos": [2, 3, 4, 5],
+            "type_staff": "Nuit",
             "competences": [10, 12]
         },
         {
@@ -250,23 +273,30 @@ if __name__ == "__main__":
             "preference_heures_max": 4,
             "contrainte_heures_consecutives_max": 2,
             "dispos": [1, 2, 5, 6],
+            "type_staff": "Jour",
             "competences": [12]
         },
         {
             "id_staffeur": 4,
             "preference_heures_max": 8,
             "contrainte_heures_consecutives_max": 4,
+            "type_staff": "Jour",
             "dispos": [3, 4, 5, 6],
             "competences": [11, 12]
         },
     ]
 
     jobs = [
-        {"id_job": 100, "id_competence_requise": 10, "id_creneau": 1, "nb_staffeurs_min": 2, "nb_staffeurs_max": 2},
-        {"id_job": 101, "id_competence_requise": 12, "id_creneau": 2, "nb_staffeurs_min": 1, "nb_staffeurs_max": 2},
-        {"id_job": 102, "id_competence_requise": 11, "id_creneau": 3, "nb_staffeurs_min": 1, "nb_staffeurs_max": 1},
-        {"id_job": 103, "id_competence_requise": 12, "id_creneau": 4, "nb_staffeurs_min": 2, "nb_staffeurs_max": 3},
-        {"id_job": 104, "id_competence_requise": 10, "id_creneau": 6, "nb_staffeurs_min": 1, "nb_staffeurs_max": 2},
+        {"id_job": 100, "id_competence_requise": 10, "id_creneau": 1,
+            "nb_staffeurs_min": 2, "nb_staffeurs_max": 2},
+        {"id_job": 101, "id_competence_requise": 12, "id_creneau": 2,
+            "nb_staffeurs_min": 1, "nb_staffeurs_max": 2},
+        {"id_job": 102, "id_competence_requise": 11, "id_creneau": 3,
+            "nb_staffeurs_min": 1, "nb_staffeurs_max": 1},
+        {"id_job": 103, "id_competence_requise": 12, "id_creneau": 4,
+            "nb_staffeurs_min": 2, "nb_staffeurs_max": 3},
+        {"id_job": 104, "id_competence_requise": 10, "id_creneau": 6,
+            "nb_staffeurs_min": 1, "nb_staffeurs_max": 2},
     ]
 
     # noms pour rendre le test lisible
@@ -283,7 +313,8 @@ if __name__ == "__main__":
 
     print("affectations :")
     for aff in resultat["affectations"]:
-        nom_staff = noms_staffeurs.get(aff["id_staffeur"], f"Staffeur {aff['id_staffeur']}")
+        nom_staff = noms_staffeurs.get(
+            aff["id_staffeur"], f"Staffeur {aff['id_staffeur']}")
         nom_job = noms_jobs.get(aff["id_job"], f"Job {aff['id_job']}")
         print(f"  {nom_staff} -> {nom_job}")
 
@@ -294,20 +325,25 @@ if __name__ == "__main__":
     print(f"  moyenne heures/staff : {stats['moyenne_heures']}h")
 
     print("\nvue admin :")
-    vue_admin = formatter_vue_admin(resultat["affectations"], staffeurs, jobs, creneaux)
+    vue_admin = formatter_vue_admin(
+        resultat["affectations"], staffeurs, jobs, creneaux)
     for jour, heures in vue_admin.items():
         print(f"  {jour} :")
         for heure, affs in heures.items():
-            noms = [noms_staffeurs.get(a["id_staffeur"], str(a["id_staffeur"])) for a in affs]
-            nom_job = noms_jobs.get(affs[0]["id_job"], f"Job {affs[0]['id_job']}")
+            noms = [noms_staffeurs.get(
+                a["id_staffeur"], str(a["id_staffeur"])) for a in affs]
+            nom_job = noms_jobs.get(
+                affs[0]["id_job"], f"Job {affs[0]['id_job']}")
             print(f"    {heure} | {nom_job} -> {', '.join(noms)}")
 
-    print("\nvue mon planning (staffeur 2 = Margaux) :")
-    vue_margaux = formatter_vue_mon_planning(resultat["affectations"], 2, jobs, creneaux)
+    print("\nvue mon planning (staffeur 1 = Balsam) :")
+    vue_margaux = formatter_vue_mon_planning(
+        resultat["affectations"], 1, jobs, creneaux)
     for jour, affs in vue_margaux.items():
         print(f"  {jour} :")
         for aff in affs:
-            print(f"    {aff['heure_debut']}-{aff['heure_fin']} -> {noms_jobs.get(aff['id_job'], str(aff['id_job']))}")
+            print(
+                f"    {aff['heure_debut']}-{aff['heure_fin']} -> {noms_jobs.get(aff['id_job'], str(aff['id_job']))}")
 
     print("\nvue jobs :")
     vue_jobs = formatter_vue_jobs(resultat["affectations"], jobs, creneaux)
