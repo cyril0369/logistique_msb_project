@@ -12,7 +12,8 @@ def generer_planning(staffeurs, jobs, creneaux):
     heures_par_staff = defaultdict(int)           # combien d'heures il a déjà
     creneaux_par_staff = defaultdict(list)        # sur quels créneaux il est déjà
     jobs_par_staff_et_creneau = defaultdict(set)  # pour vérifier max 1 job/créneau
-
+    creneau_par_id = {c["id_creneau"]: c for c in creneaux}
+ 
     # on garde l'ordre des créneaux pour calculer les heures consécutives
     ordre_creneaux = [c["id_creneau"] for c in creneaux]
 
@@ -31,6 +32,14 @@ def generer_planning(staffeurs, jobs, creneaux):
             # 1. Pour voir si le staffeur est dispo sur ce créneau
             if id_creneau_job not in staff["dispos"]:
                 continue
+
+            # 1'. vérifier que le créneau est compatible avec le type du staffeur
+            heure_creneau = creneau_par_id[id_creneau_job]["heure_debut"]
+            type_staff = staff["type_staff"]
+            if type_staff == "Jour" and heure_creneau >= "18:00":
+               continue
+            if type_staff == "Nuit" and heure_creneau < "18:00":
+               continue
 
             # 2. il a la compétence requise ?
             if id_competence_requise not in staff["competences"]:
@@ -228,6 +237,7 @@ if __name__ == "__main__":
         {"id_creneau": 4, "jour": "Samedi",    "heure_debut": "09:00", "heure_fin": "10:00"},
         {"id_creneau": 5, "jour": "Samedi",    "heure_debut": "10:00", "heure_fin": "11:00"},
         {"id_creneau": 6, "jour": "Dimanche",  "heure_debut": "14:00", "heure_fin": "15:00"},
+        
     ]
 
     staffeurs = [
@@ -236,6 +246,7 @@ if __name__ == "__main__":
             "preference_heures_max": 4,
             "contrainte_heures_consecutives_max": 3,
             "dispos": [1, 2, 3, 4],
+            "type_staff": "Jour",
             "competences": [10, 11]
         },
         {
@@ -243,6 +254,7 @@ if __name__ == "__main__":
             "preference_heures_max": 6,
             "contrainte_heures_consecutives_max": 4,
             "dispos": [2, 3, 4, 5],
+            "type_staff": "Nuit",
             "competences": [10, 12]
         },
         {
@@ -250,12 +262,14 @@ if __name__ == "__main__":
             "preference_heures_max": 4,
             "contrainte_heures_consecutives_max": 2,
             "dispos": [1, 2, 5, 6],
+            "type_staff": "Jour", 
             "competences": [12]
         },
         {
             "id_staffeur": 4,
             "preference_heures_max": 8,
             "contrainte_heures_consecutives_max": 4,
+            "type_staff": "Jour",
             "dispos": [3, 4, 5, 6],
             "competences": [11, 12]
         },
@@ -302,8 +316,8 @@ if __name__ == "__main__":
             nom_job = noms_jobs.get(affs[0]["id_job"], f"Job {affs[0]['id_job']}")
             print(f"    {heure} | {nom_job} -> {', '.join(noms)}")
 
-    print("\nvue mon planning (staffeur 2 = Margaux) :")
-    vue_margaux = formatter_vue_mon_planning(resultat["affectations"], 2, jobs, creneaux)
+    print("\nvue mon planning (staffeur 1 = Balsam) :")
+    vue_margaux = formatter_vue_mon_planning(resultat["affectations"], 1, jobs, creneaux)
     for jour, affs in vue_margaux.items():
         print(f"  {jour} :")
         for aff in affs:
