@@ -10,7 +10,7 @@ from psycopg2.extras import RealDictCursor
 try:
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover - optional dependency
-    def load_dotenv():
+    def load_dotenv() -> bool:
         return False
 
 from creer_poules import creer_poules

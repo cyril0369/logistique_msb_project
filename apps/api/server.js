@@ -615,13 +615,44 @@ app.post("/api/orders", requireAuth, noCache, async (req, res, next) => {
       return res.status(400).send("Veuillez commander au moins un article.");
     }
 
-    await pool.query(
-      `INSERT INTO goodies_orders (user_id, tshirt_qty, bob_qty, short_qty, maillot_qty, gourde_qty, gourd_qty, goodie3_qty)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [req.session.userId, tshirt, bob, shortQty, maillotQty, gourde, gourde, legacyGoodie3]
+    const userId = req.session.userId;
+    const updateResult = await pool.query(
+      `UPDATE goodies_orders
+       SET tshirt_qty = $2,
+           bob_qty = $3,
+           short_qty = $4,
+           maillot_qty = $5,
+           gourde_qty = $6,
+           gourd_qty = $7,
+           goodie3_qty = $8
+       WHERE user_id = $1`,
+      [userId, tshirt, bob, shortQty, maillotQty, gourde, gourde, legacyGoodie3]
     );
 
-    res.status(201).send("Commande enregistrée !");
+    if (updateResult.rowCount === 0) {
+      await pool.query(
+        `INSERT INTO goodies_orders (user_id, tshirt_qty, bob_qty, short_qty, maillot_qty, gourde_qty, gourd_qty, goodie3_qty)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [userId, tshirt, bob, shortQty, maillotQty, gourde, gourde, legacyGoodie3]
+      );
+      return res.status(201).send("Commande enregistree !");
+    }
+
+    // Safety net: keep only the latest row for this user if historical duplicates exist.
+    await pool.query(
+      `DELETE FROM goodies_orders
+       WHERE user_id = $1
+         AND id NOT IN (
+           SELECT id
+           FROM goodies_orders
+           WHERE user_id = $1
+           ORDER BY created_at DESC, id DESC
+           LIMIT 1
+         )`,
+      [userId]
+    );
+
+    return res.status(200).send("Commande mise a jour !");
   } catch (e) {
     next(e);
   }

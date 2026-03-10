@@ -52,6 +52,23 @@ ALTER TABLE goodies_orders ADD COLUMN IF NOT EXISTS short_qty INTEGER DEFAULT 0;
 ALTER TABLE goodies_orders ADD COLUMN IF NOT EXISTS maillot_qty INTEGER DEFAULT 0;
 ALTER TABLE goodies_orders ADD COLUMN IF NOT EXISTS gourde_qty INTEGER DEFAULT 0;
 
+-- One goodies order per account: keep the latest row and enforce uniqueness.
+WITH ranked_goodies_orders AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (
+      PARTITION BY user_id
+      ORDER BY created_at DESC, id DESC
+    ) AS rn
+  FROM goodies_orders
+)
+DELETE FROM goodies_orders g
+USING ranked_goodies_orders r
+WHERE g.id = r.id
+  AND r.rn > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_goodies_orders_user_id ON goodies_orders(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_goodies_orders_user_id ON goodies_orders(user_id);
