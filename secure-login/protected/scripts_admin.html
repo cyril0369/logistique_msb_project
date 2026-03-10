@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scripts Planning - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles-new.css" />
+  <style>
+    :root {
+      --panel-bg: #ffffff;
+      --panel-border: #d8dde6;
+      --surface-bg: #f3f6fa;
+      --output-bg: #0f172a;
+      --output-fg: #e5e7eb;
+      --ok: #0d7a46;
+      --ko: #b42318;
+      --running: #175cd3;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 10% 0%, #d9e6ff 0, rgba(217, 230, 255, 0) 42%),
+        radial-gradient(circle at 92% 8%, #d8f8f0 0, rgba(216, 248, 240, 0) 35%),
+        var(--surface-bg);
+    }
+
+    main.scripts-page {
+      display: block;
+      justify-content: initial;
+      align-items: initial;
+      overflow: visible;
+      flex: 1;
+      padding: 22px 0 28px;
+    }
+
+    .scripts-page {
+      width: min(1360px, 100% - 28px);
+      margin: 0 auto;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(420px, 2.4fr) minmax(540px, 1.2fr);
+      gap: 16px;
+      min-height: calc(100vh - 180px);
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(16, 24, 40, 0.06);
+      padding: 16px;
+    }
+
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .scripts-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .script-card {
+      background: #fbfcfe;
+      border-radius: 10px;
+      border: 1px solid #e8edf4;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .script-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .script-card h3 {
+      margin: 0;
+      color: var(--BLEU_PRINCIPAL);
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .script-card p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.4;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .toolbar label {
+      font-size: 13px;
+      color: #344054;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+
+    .toolbar input[type="number"] {
+      width: 68px;
+      height: 28px;
+      border: 1px solid #d0d5dd;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 13px;
+    }
+
+    .run-btn,
+    .toolbar .se-connecter {
+      min-width: 96px;
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 8px;
+    }
+
+    .run-btn h4,
+    .toolbar .se-connecter h4 {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .log-box {
+      width: 100%;
+      flex: 1;
+      min-height: 520px;
+      background: var(--output-bg);
+      color: var(--output-fg);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow: auto;
+      box-sizing: border-box;
+      border: 1px solid #1f2937;
+    }
+
+    .status {
+      margin: 0;
+      font-weight: 600;
+      font-size: 14px;
+      color: #334155;
+    }
+
+    .status.status-running {
+      color: var(--running);
+    }
+
+    .status.status-ok {
+      color: var(--ok);
+    }
+
+    .status.status-ko {
+      color: var(--ko);
+    }
+
+    .muted {
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+        min-height: unset;
+      }
+      .log-box {
+        min-height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="Page">
+    <header class="desktop">
+      <button class="hamburger-btn" type="button" aria-label="Menu" onclick="toggleHamburger(this)">
+        <img class="hamburger-icon icon-menu" src="/assets/icon-menu.svg" alt="" aria-hidden="false" />
+        <img class="hamburger-icon icon-close" src="/assets/icon-close.svg" alt="" aria-hidden="true" />
+      </button>
+      <img class="LogoDesktop" src="/logo.png" alt="MSB Logo" />
+      <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/dashboard'" />
+    </header>
+
+    <main class="scripts-page">
+      <div class="titre-sous-titre block">
+        <h1>Execution des Scripts de Planning</h1>
+        <p class="sous-titre-1" style="cursor: default;">Lancer les scripts Python avec la base PostgreSQL en entree.</p>
+      </div>
+
+      <div class="layout">
+        <section class="left-col panel">
+          <div class="toolbar">
+            <label>
+              <input type="checkbox" id="writeDb" checked /> Ecrire en base
+            </label>
+            <label>
+              Max equipes/poule
+              <input id="maxParPoule" type="number" value="4" min="2" max="20" />
+            </label>
+            <button class="se-connecter" type="button" onclick="location.href='/dashboard'">
+              <h4>Retour</h4>
+            </button>
+            <button class="se-connecter" type="button" id="poulesLinkBtn" onclick="location.href='/admin/poules'">
+              <h4>Voir poules</h4>
+            </button>
+          </div>
+
+          <div class="scripts-grid">
+            <div class="script-card">
+              <div class="script-meta">
+                <h3>creer_poules.py</h3>
+                <p>Genere les poules depuis les equipes.</p>
+              </div>
+              <button class="se-connecter run-btn" data-script="creer_poules"><h4>Lancer</h4></button>
+            </div>
+            <div class="script-card">
+              <div class="script-meta">
+                <h3>planning_staff.py</h3>
+                <p>Calcule les affectations staff sur les jobs.</p>
+              </div>
+              <button class="se-connecter run-btn" data-script="planning_staff"><h4>Lancer</h4></button>
+            </div>
+            <div class="script-card">
+              <div class="script-meta">
+                <h3>planning_tournoi.py</h3>
+                <p>Planifie les matchs tournoi par creneau/terrain.</p>
+              </div>
+              <button class="se-connecter run-btn" data-script="planning_tournoi"><h4>Lancer</h4></button>
+            </div>
+            <div class="script-card">
+              <div class="script-meta">
+                <h3>Tous les scripts</h3>
+                <p>Execute les 3 scripts dans l'ordre.</p>
+              </div>
+              <button class="se-connecter run-btn" data-script="all"><h4>Lancer tout</h4></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="right-col panel">
+          <div class="status-row">
+            <div id="status" class="status">Pret.</div>
+            <div class="muted">Sorties stdout/stderr du script</div>
+          </div>
+          <div id="logBox" class="log-box">Logs script...</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const logBox = document.getElementById("logBox");
+    const writeDbEl = document.getElementById("writeDb");
+    const maxParPouleEl = document.getElementById("maxParPoule");
+    const poulesLinkBtn = document.getElementById("poulesLinkBtn");
+    const runButtons = Array.from(document.querySelectorAll(".run-btn"));
+
+    function setBusyState(isBusy) {
+      runButtons.forEach((btn) => {
+        btn.disabled = isBusy;
+        btn.style.opacity = isBusy ? "0.65" : "1";
+      });
+    }
+
+    function pushLog(text) {
+      const now = new Date().toLocaleTimeString();
+      logBox.textContent = `[${now}] ${text}\n\n` + logBox.textContent;
+    }
+
+    async function runScript(scriptName) {
+      const writeDb = !!writeDbEl.checked;
+      const maxParPoule = Number.parseInt(maxParPouleEl.value || "4", 10);
+
+      setBusyState(true);
+      statusEl.className = "status status-running";
+      statusEl.textContent = `Execution en cours: ${scriptName}...`;
+      pushLog(`Lancement de ${scriptName} (write_db=${writeDb}, max_par_poule=${maxParPoule})`);
+
+      try {
+        const res = await fetch(`/api/admin/scripts/${scriptName}/run`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            write_db: writeDb,
+            max_par_poule: maxParPoule,
+          }),
+        });
+
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || body.ok === false) {
+          const errMsg = body.error || body.stderr || body.stdout || "Erreur inconnue";
+          statusEl.className = "status status-ko";
+          statusEl.textContent = `Echec: ${scriptName}`;
+          pushLog(`ECHEC ${scriptName}\n${errMsg}`);
+          return;
+        }
+
+        statusEl.className = "status status-ok";
+        statusEl.textContent = `Succes: ${scriptName}`;
+        const output = [body.stdout, body.stderr].filter(Boolean).join("\n");
+        pushLog(`OK ${scriptName}\n${output || "(aucune sortie)"}`);
+
+        if (scriptName === "creer_poules" || scriptName === "all") {
+          poulesLinkBtn.style.boxShadow = "0 0 0 2px rgba(58, 121, 141, 0.25)";
+          pushLog("Visualisation disponible: /admin/poules");
+        }
+      } catch (err) {
+        statusEl.className = "status status-ko";
+        statusEl.textContent = `Erreur reseau: ${scriptName}`;
+        pushLog(`ERREUR ${scriptName}\n${err.message}`);
+      } finally {
+        setBusyState(false);
+      }
+    }
+
+    runButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        runScript(btn.dataset.script);
+      });
+    });
+  </script>
+  <script src="/hamburger.js"></script>
+</body>
+</html>

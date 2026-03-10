@@ -17,33 +17,66 @@
       <img class="icon-connexion" src="/assets/icon-user.svg" alt="Compte" onclick="location.href='/dashboard'" />
     </header>
     <main>
-      <div class="Formulaire">
+      <div class="Formulaire" style="max-width: 1020px;">
         <div class="titre-sous-titre block">
           <h1>Commander des Goodies</h1>
-          <p class="sous-titre-1" style="cursor: default;">Sélectionnez les quantités souhaitées</p>
+          <p class="sous-titre-1" style="cursor: default;">Selectionnez les quantites souhaitees</p>
         </div>
 
         <div id="msg" class="alert err" style="display:none;"></div>
 
         <form id="orderForm">
-          <div class="champ-de-saisie block">
-            <label for="tshirt_qty">T-shirts</label>
-            <input class="input" type="number" id="tshirt_qty" name="tshirt_qty" min="0" value="0" />
-          </div>
+          <div class="goodies-list">
+            <article class="goodies-card">
+              <img src="/assets/msb/tee-shirt.png" alt="T-shirt MSB" />
+              <div class="goodies-meta">
+                <h2>T-shirt</h2>
+                <div class="goodies-price">10 EUR</div>
+                <div class="goodies-input-row">
+                  <label for="tshirt_size" class="corps-2">Taille</label>
+                  <select class="input" id="tshirt_size" name="tshirt_size">
+                    <option value="">Selectionner</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                  </select>
+                </div>
+                <div class="goodies-input-row">
+                  <label for="tshirt_qty" class="corps-2">Quantite</label>
+                  <input class="input" type="number" id="tshirt_qty" name="tshirt_qty" min="0" value="0" />
+                </div>
+              </div>
+            </article>
 
-          <div class="champ-de-saisie block">
-            <label for="gourd_qty">Gourdes</label>
-            <input class="input" type="number" id="gourd_qty" name="gourd_qty" min="0" value="0" />
-          </div>
+            <article class="goodies-card">
+              <img src="/assets/msb/gourde.png" alt="Gourde MSB" />
+              <div class="goodies-meta">
+                <h2>Gourde</h2>
+                <div class="goodies-price">2 EUR</div>
+                <div class="goodies-input-row">
+                  <label for="gourd_qty" class="corps-2">Quantite</label>
+                  <input class="input" type="number" id="gourd_qty" name="gourd_qty" min="0" value="0" />
+                </div>
+              </div>
+            </article>
 
-          <div class="champ-de-saisie block">
-            <label for="goodie3_qty">Goodie 3</label>
-            <input class="input" type="number" id="goodie3_qty" name="goodie3_qty" min="0" value="0" />
+            <article class="goodies-card">
+              <img src="/assets/msb/bob.png" alt="Bob MSB" />
+              <div class="goodies-meta">
+                <h2>Bob</h2>
+                <div class="goodies-price">15 EUR</div>
+                <div class="goodies-input-row">
+                  <label for="goodie3_qty" class="corps-2">Quantite</label>
+                  <input class="input" type="number" id="goodie3_qty" name="goodie3_qty" min="0" value="0" />
+                </div>
+              </div>
+            </article>
           </div>
 
           <div class="boutton-mdp-oublier block" style="gap: 16px; margin-top: 24px;">
             <button type="submit" class="se-connecter">
-              <h4>Valider la commande</h4>
+              <h4>Valider</h4>
             </button>
           </div>
         </form>

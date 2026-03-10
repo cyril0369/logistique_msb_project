@@ -4,6 +4,8 @@ console.log("DB URL:", process.env.DATABASE_URL);
 
 const path = require("path");
 const nodemailer = require("nodemailer");
+const { spawn } = require("child_process");
+const fs = require("fs");
 
 function requireAuth(req, res, next) {
   if (!req.session.userId) return res.status(401).sendFile(path.join(__dirname, "public", "error-401.html"));
@@ -19,7 +21,7 @@ async function requireAdmin(req, res, next) {
   if (!user.is_admin) return res.status(403).sendFile(path.join(__dirname, "public", "error-403.html"));
   next();
 
-} 
+}
 
 async function requireStaff(req, res, next) {
   const result = await pool.query("SELECT 1 FROM staff WHERE user_id=$1 LIMIT 1", [
@@ -75,7 +77,92 @@ const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const mailTransporter = process.env.SMTP_HOST
+const SCRIPT_RUNNER_PATH = path.join(__dirname, "logistique_msb_project", "V2", "run_v2_with_db.py");
+const SCRIPT_RUNNER_CWD = path.dirname(SCRIPT_RUNNER_PATH);
+const SCRIPT_TIMEOUT_MS = 10 * 60 * 1000;
+const SCRIPT_NAMES = new Set(["creer_poules", "planning_staff", "planning_tournoi", "all"]);
+let isPlanningScriptRunning = false;
+
+function resolvePythonBin() {
+  const candidates = [
+    process.env.PYTHON_BIN,
+    path.join(__dirname, ".venv", "bin", "python"),
+    path.join(__dirname, "..", ".venv", "bin", "python"),
+    "python3",
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (candidate === "python3") return candidate;
+    if (fs.existsSync(candidate)) return candidate;
+  }
+
+  return "python3";
+}
+
+function runPlanningScript(scriptName, options = {}) {
+  const writeDb = options.writeDb !== false;
+  const maxParPoule = Number.isInteger(options.maxParPoule) && options.maxParPoule > 0
+    ? options.maxParPoule
+    : 4;
+
+  return new Promise((resolve, reject) => {
+    const args = [
+      SCRIPT_RUNNER_PATH,
+      "--script",
+      scriptName,
+      "--max-par-poule",
+      String(maxParPoule),
+    ];
+
+    if (writeDb) {
+      args.push("--write-db");
+    }
+
+    const pythonCmd = resolvePythonBin();
+    const child = spawn(pythonCmd, args, {
+      cwd: SCRIPT_RUNNER_CWD,
+      env: {
+        ...process.env,
+        DATABASE_URL: process.env.DATABASE_URL || "",
+      },
+    });
+
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill("SIGKILL");
+      reject(new Error(`Timeout: script ${scriptName} exceeded ${SCRIPT_TIMEOUT_MS}ms`));
+    }, SCRIPT_TIMEOUT_MS);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({ code, stdout: stdout.trim(), stderr: stderr.trim() });
+    });
+  });
+}
+
+/*const mailTransporter = process.env.SMTP_HOST
   ? nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || "587", 10),
@@ -93,6 +180,48 @@ async function sendStaffEmail({ to, subject, text }) {
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
   return mailTransporter.sendMail({ from, to, subject, text });
 }
+*/
+
+const ALLOWED_DAYS = ["vendredi", "samedi", "dimanche"];
+
+const STAFF_TYPE_MAP = {
+  1: "bar",
+  2: "cuisine",
+  3: "arbitre_beach_rugby",
+  4: "arbitre_beach_soccer",
+  5: "arbitre_beach_volley",
+  6: "arbitre_dodgeball",
+  7: "arbitre_handball",
+};
+
+/*
+
+async function ensureSchedulingSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS creneaux (
+      id SERIAL PRIMARY KEY,
+      day_of_week VARCHAR(10) NOT NULL CHECK (day_of_week IN ('vendredi', 'samedi', 'dimanche')),
+      start_hour INTEGER NOT NULL CHECK (start_hour >= 0 AND start_hour <= 23),
+      end_hour INTEGER NOT NULL CHECK (end_hour >= 1 AND end_hour <= 24 AND end_hour > start_hour),
+      label VARCHAR(120),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (day_of_week, start_hour, end_hour)
+    );
+  `);
+
+  await pool.query(`
+    INSERT INTO creneaux (day_of_week, start_hour, end_hour, label)
+    SELECT
+      d.day_name,
+      h,
+      h + 1,
+      INITCAP(d.day_name) || ' ' || LPAD(h::text, 2, '0') || ':00-' || LPAD((h + 1)::text, 2, '0') || ':00'
+    FROM (VALUES ('vendredi'), ('samedi'), ('dimanche')) AS d(day_name)
+    CROSS JOIN generate_series(0, 23) AS h
+    ON CONFLICT (day_of_week, start_hour, end_hour) DO NOTHING;
+  `);
+}
+*/
 
 app.use(
   session({
@@ -532,11 +661,218 @@ app.get("/jobs", requireAuth, requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, "protected", "jobs.html"));
 });
 
+app.get("/admin/scripts", requireAuth, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "scripts_admin.html"));
+});
+
+app.get("/admin/poules", requireAuth, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "poules_overview.html"));
+});
+
+app.get("/admin/poules/:sportId", requireAuth, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "poules_sport.html"));
+});
+
+app.get("/api/admin/poules/sports", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        s.id_sport,
+        s.nom_sport,
+        COUNT(DISTINCT p.id_poule) AS poules_count,
+        COUNT(DISTINCT pe.id_equipe) AS equipes_count
+      FROM sport s
+      LEFT JOIN poule p ON p.id_sport = s.id_sport
+      LEFT JOIN poule_equipe pe ON pe.id_poule = p.id_poule
+      GROUP BY s.id_sport, s.nom_sport
+      ORDER BY LOWER(s.nom_sport) ASC
+    `);
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/api/admin/poules/sport/:sportId", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const sportId = Number.parseInt(req.params.sportId, 10);
+    if (!Number.isInteger(sportId)) {
+      return res.status(400).send("sportId invalide");
+    }
+
+    const sportResult = await pool.query(
+      `SELECT id_sport, nom_sport FROM sport WHERE id_sport = $1`,
+      [sportId]
+    );
+    if (!sportResult.rows.length) {
+      return res.status(404).send("Sport introuvable");
+    }
+
+    const { rows } = await pool.query(
+      `SELECT
+         p.id_poule,
+         p.nom_poule,
+         p.niveau::text AS niveau,
+         p.categorie::text AS categorie,
+         COALESCE(
+           json_agg(
+             json_build_object(
+               'id_equipe', e.id_equipe,
+               'nom_equipe', e.nom_equipe,
+               'nb_joueurs', e.nb_joueurs
+             ) ORDER BY pe.position NULLS LAST, e.id_equipe
+           ) FILTER (WHERE e.id_equipe IS NOT NULL),
+           '[]'
+         ) AS equipes
+       FROM poule p
+       LEFT JOIN poule_equipe pe ON pe.id_poule = p.id_poule
+       LEFT JOIN equipe e ON e.id_equipe = pe.id_equipe
+       WHERE p.id_sport = $1
+       GROUP BY p.id_poule, p.nom_poule, p.niveau, p.categorie
+       ORDER BY p.nom_poule ASC, p.id_poule ASC`,
+      [sportId]
+    );
+
+    return res.json({
+      sport: sportResult.rows[0],
+      poules: rows,
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/api/admin/scripts", requireAuth, requireAdmin, (req, res) => {
+  res.json({
+    scripts: ["creer_poules", "planning_staff", "planning_tournoi", "all"],
+    isRunning: isPlanningScriptRunning,
+  });
+});
+
+app.post("/api/admin/scripts/:scriptName/run", requireAuth, requireAdmin, async (req, res) => {
+  const { scriptName } = req.params;
+  const writeDb = req.body?.write_db !== false;
+  const maxParPoule = Number.parseInt(req.body?.max_par_poule ?? "4", 10);
+
+  if (!SCRIPT_NAMES.has(scriptName)) {
+    return res.status(400).json({ error: "scriptName invalide" });
+  }
+
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({ error: "DATABASE_URL n'est pas configuree" });
+  }
+
+  if (isPlanningScriptRunning) {
+    return res.status(409).json({ error: "Un script est deja en cours d'execution" });
+  }
+
+  try {
+    isPlanningScriptRunning = true;
+    const result = await runPlanningScript(scriptName, {
+      writeDb,
+      maxParPoule,
+    });
+
+    if (result.code !== 0) {
+      return res.status(500).json({
+        ok: false,
+        code: result.code,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
+    }
+
+    return res.json({
+      ok: true,
+      code: result.code,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      error: err.message || "Erreur inattendue",
+    });
+  } finally {
+    isPlanningScriptRunning = false;
+  }
+});
+
+app.get("/api/creneaux", requireAuth, async (req, res, next) => {
+  try {
+    if (!req.session.is_admin && !req.session.is_staff) {
+      return res.status(403).sendFile(path.join(__dirname, "public", "error-403.html"));
+    }
+
+    const { rows } = await pool.query(`
+      SELECT id, day_of_week, start_hour, end_hour, label
+      FROM creneaux
+      ORDER BY
+        CASE day_of_week
+          WHEN 'vendredi' THEN 1
+          WHEN 'samedi' THEN 2
+          WHEN 'dimanche' THEN 3
+          ELSE 99
+        END,
+        start_hour,
+        end_hour
+    `);
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/api/creneaux", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const day = String(req.body.day_of_week || "").trim().toLowerCase();
+    const startHour = Number.parseInt(req.body.start_hour, 10);
+    const endHour = Number.parseInt(req.body.end_hour, 10);
+
+    if (!ALLOWED_DAYS.includes(day)) {
+      return res.status(400).send("Jour invalide (vendredi, samedi, dimanche)");
+    }
+    if (!Number.isInteger(startHour) || !Number.isInteger(endHour)) {
+      return res.status(400).send("Heures invalides");
+    }
+    if (startHour < 0 || startHour > 23 || endHour < 1 || endHour > 24 || endHour <= startHour) {
+      return res.status(400).send("La tranche horaire est invalide");
+    }
+
+    const label = req.body.label
+      ? String(req.body.label).trim()
+      : `${day} ${String(startHour).padStart(2, "0")}:00-${String(endHour).padStart(2, "0")}:00`;
+
+    const result = await pool.query(
+      `INSERT INTO creneaux (day_of_week, start_hour, end_hour, label)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (day_of_week, start_hour, end_hour)
+       DO UPDATE SET label = EXCLUDED.label
+       RETURNING id, day_of_week, start_hour, end_hour, label`,
+      [day, startHour, endHour, label]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.get("/api/jobs", requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
       SELECT 
-        j.id, j.creneau, j.staff_needed, j.staff_type, j.description, j.staff_assigned, j.created_at,
+        j.id,
+        j.creneau,
+        j.staff_needed,
+        j.staff_type,
+        j.description,
+        j.staff_assigned,
+        j.created_at,
+        c.day_of_week,
+        c.start_hour,
+        c.end_hour,
+        c.label AS creneau_label,
         COALESCE(
           json_agg(
             json_build_object(
@@ -549,10 +885,19 @@ app.get("/api/jobs", requireAuth, requireAdmin, async (req, res, next) => {
           '[]'
         ) AS assigned_staff_details
       FROM jobs j
-      LEFT JOIN LATERAL unnest(j.staff_assigned) WITH ORDINALITY AS staff_id ON true
-      LEFT JOIN users u ON u.id = staff_id
-      GROUP BY j.id
-      ORDER BY j.creneau, j.staff_type
+      LEFT JOIN creneaux c ON c.id = j.creneau
+      LEFT JOIN LATERAL unnest(j.staff_assigned) AS staff_id(user_id) ON true
+      LEFT JOIN users u ON u.id = staff_id.user_id
+      GROUP BY j.id, c.id
+      ORDER BY
+        CASE c.day_of_week
+          WHEN 'vendredi' THEN 1
+          WHEN 'samedi' THEN 2
+          WHEN 'dimanche' THEN 3
+          ELSE 99
+        END,
+        c.start_hour NULLS LAST,
+        j.staff_type
     `);
     res.json(rows);
   } catch (e) {
@@ -562,16 +907,30 @@ app.get("/api/jobs", requireAuth, requireAdmin, async (req, res, next) => {
 
 app.post("/api/jobs", requireAuth, requireAdmin, async (req, res, next) => {
   try {
-    const { creneau, staff_needed, staff_type, description } = req.body;
+    const creneau = Number.parseInt(req.body.creneau, 10);
+    const staffNeeded = Number.parseInt(req.body.staff_needed, 10);
+    const staffType = Number.parseInt(req.body.staff_type, 10);
+    const description = req.body.description;
     
-    if (!creneau || !staff_type || !staff_needed) {
+    if (!Number.isInteger(creneau) || !Number.isInteger(staffNeeded) || !Number.isInteger(staffType)) {
       return res.status(400).send("Créneau, staff_type et staff_needed sont requis");
+    }
+    if (staffNeeded < 1) {
+      return res.status(400).send("staff_needed doit être supérieur ou égal à 1");
+    }
+    if (!STAFF_TYPE_MAP[staffType]) {
+      return res.status(400).send("staff_type invalide");
+    }
+
+    const creneauResult = await pool.query("SELECT id FROM creneaux WHERE id = $1", [creneau]);
+    if (!creneauResult.rows.length) {
+      return res.status(400).send("Créneau introuvable");
     }
 
     const result = await pool.query(
       `INSERT INTO jobs (creneau, staff_needed, staff_type, description)
        VALUES ($1, $2, $3, $4) RETURNING *`,
-      [creneau, staff_needed, staff_type, description || null]
+      [creneau, staffNeeded, staffType, description || null]
     );
     
     res.status(201).json(result.rows[0]);
@@ -588,17 +947,7 @@ app.get("/api/jobs/available-staff", requireAuth, requireAdmin, async (req, res,
       return res.status(400).send("creneau et staff_type requis");
     }
 
-    const staffTypeMap = {
-      '1': 'bar',
-      '2': 'cuisine',
-      '3': 'arbitre_beach_rugby',
-      '4': 'arbitre_beach_soccer',
-      '5': 'arbitre_beach_volley',
-      '6': 'arbitre_dodgeball',
-      '7': 'arbitre_handball'
-    };
-    
-    const columnName = staffTypeMap[staff_type];
+    const columnName = STAFF_TYPE_MAP[Number.parseInt(staff_type, 10)];
     if (!columnName) {
       return res.status(400).send("staff_type invalide");
     }
@@ -688,6 +1037,40 @@ app.delete("/api/jobs/:id", requireAuth, requireAdmin, async (req, res, next) =>
   }
 });
 
+app.get("/api/my-schedule", requireAuth, requireStaff, async (req, res, next) => {
+  try {
+    const userId = req.session.userId;
+    const { rows } = await pool.query(
+      `SELECT
+         j.id,
+         j.staff_type,
+         j.description,
+         c.id AS creneau_id,
+         c.day_of_week,
+         c.start_hour,
+         c.end_hour,
+         c.label AS creneau_label
+       FROM jobs j
+       JOIN creneaux c ON c.id = j.creneau
+       WHERE $1 = ANY (j.staff_assigned)
+       ORDER BY
+         CASE c.day_of_week
+           WHEN 'vendredi' THEN 1
+           WHEN 'samedi' THEN 2
+           WHEN 'dimanche' THEN 3
+           ELSE 99
+         END,
+         c.start_hour,
+         c.end_hour,
+         j.staff_type`,
+      [userId]
+    );
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.get("/session-info", (req, res) => {
   const isAuthenticated = !!req.session?.userId;
   const isAdmin = !!req.session?.is_admin;
@@ -711,6 +1094,20 @@ app.post("/logout", (req, res, next) => {
 });
 
 
-app.listen(80, () => {
-  console.log("Server running on http://localhost:80");
-});
+async function startServer() {
+  try {
+    if (typeof ensureSchedulingSchema === "function") {
+      await ensureSchedulingSchema();
+    } else {
+      console.warn("Scheduling schema bootstrap skipped (ensureSchedulingSchema not defined).");
+    }
+    app.listen(80, () => {
+      console.log("Server running on http://localhost:80");
+    });
+  } catch (err) {
+    console.error("Failed to initialize DB schema:", err);
+    process.exit(1);
+  }
+}
+
+startServer();

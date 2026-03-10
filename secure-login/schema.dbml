@@ -1,0 +1,56 @@
+// Database schema for secure-login
+
+Table users {
+  id serial [pk]
+  username varchar(255) [not null, unique]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  first_name varchar(255) [not null]
+  last_name varchar(255) [not null]
+  phone varchar(20)
+  gender varchar(10)
+  is_admin integer [default: 0]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table session {
+  sid varchar [pk, not null]
+  sess json [not null]
+  expire timestamp(6) [not null]
+}
+
+Table goodies_orders {
+  id serial [pk]
+  user_id integer [ref: > users.id, note: "ON DELETE CASCADE"]
+  tshirt_qty integer [default: 0]
+  gourd_qty integer [default: 0]
+  goodie3_qty integer [default: 0]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table staff {
+  id serial [pk]
+  user_id integer [unique, ref: > users.id, note: "ON DELETE CASCADE"]
+  bar integer [default: 0]
+  cuisine integer [default: 0]
+  arbitre_beach_rugby integer [default: 0]
+  arbitre_beach_soccer integer [default: 0]
+  arbitre_beach_volley integer [default: 0]
+  arbitre_dodgeball integer [default: 0]
+  arbitre_handball integer [default: 0]
+  staff_type varchar(10) [note: "jour|nuit|mixte"]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table jobs {
+  id serial [pk]
+  creneau integer [not null]
+  staff_needed integer [not null, default: 1]
+  staff_type integer [not null]
+  description text
+  staff_assigned integer[] [default: '{}']
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}

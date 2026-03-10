@@ -2,445 +2,202 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Gestion Jobs - MSB Logistique</title>
+  <title>Planning Staff - MSB Logistique</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/styles-new.css">
   <style>
-    .jobs-container {
-      width: 100%;
-      max-width: none;
-      margin: 0 auto;
-      padding: 32px 20px;
+    :root {
+      --jobs-surface: #f3f6fa;
+      --jobs-panel-border: #d8dde6;
     }
-    
-    .page-header {
-      margin-bottom: 32px;
+
+    body {
+      background:
+        radial-gradient(circle at 8% 0%, #d9e6ff 0, rgba(217, 230, 255, 0) 42%),
+        radial-gradient(circle at 92% 8%, #d8f8f0 0, rgba(216, 248, 240, 0) 35%),
+        var(--jobs-surface);
     }
-    
-    .page-header h1 {
-      color: var(--BLEU_PRINCIPAL);
-      margin-bottom: 8px;
-    }
-    
-    .page-header p {
-      color: var(--GRIS_MOYEN);
-      font-size: 16px;
-    }
-    
-    .content-grid {
-      display: grid;
-      grid-template-columns: 340px minmax(0, 1fr);
-      gap: 24px;
-      align-items: start;
-    }
-    
-    @media (max-width: 1200px) {
-      .content-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    .create-panel {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      position: sticky;
-      top: 20px;
-    }
-    
-    .panel-title {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 600;
-      font-size: 20px;
-      color: var(--BLEU_PRINCIPAL);
-      margin-bottom: 20px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid var(--BEIGE);
-    }
-    
-    .form-field {
-      margin-bottom: 16px;
-    }
-    
-    .form-field label {
+
+    main.jobs-container {
       display: block;
-      font-family: 'Oswald', sans-serif;
-      font-weight: 500;
-      font-size: 14px;
-      color: var(--GRIS_FONCE);
-      margin-bottom: 6px;
+      justify-content: initial;
+      align-items: initial;
+      overflow: visible;
+      flex: 1;
+      padding: 20px 0 24px;
     }
-    
-    .form-field input,
-    .form-field select,
-    .form-field textarea {
+
+    .jobs-container { width: min(1440px, 100% - 28px); max-width: none; margin: 0 auto; }
+    .page-header { margin-bottom: 16px; }
+    .page-header h1 { color: var(--BLEU_PRINCIPAL); margin-bottom: 6px; }
+    .content-grid { display: grid; grid-template-columns: minmax(360px, 1.2fr) minmax(0, 2.1fr); gap: 16px; min-height: calc(100vh - 180px); }
+    @media (max-width: 1200px) { .content-grid { grid-template-columns: 1fr; min-height: unset; } }
+    .create-panel, .jobs-section, .planning-section {
+      background: white;
+      border-radius: 10px;
+      border: 1px solid var(--jobs-panel-border);
+      padding: 24px;
+      box-shadow: 0 8px 20px rgba(16, 24, 40, 0.06);
+    }
+    .create-panel { position: sticky; top: 20px; align-self: start; }
+    .panel-title { font-family: 'Montserrat', sans-serif; font-size: 24px; color: var(--BLEU_PRINCIPAL); margin-bottom: 16px; }
+    .sub-panel { border-top: 1px solid var(--GRIS_CLAIR); margin-top: 18px; padding-top: 18px; }
+    .sub-panel h4 { font-family: 'Oswald', sans-serif; margin-bottom: 12px; color: var(--GRIS_FONCE); font-size: 22px; }
+    .form-field { margin-bottom: 14px; }
+    .form-field label { display: block; margin-bottom: 6px; font-family: 'Inter', sans-serif; font-size: 14px; color: var(--GRIS_FONCE); }
+    .form-field input, .form-field select, .form-field textarea {
       width: 100%;
-      padding: 12px;
+      padding: 10px 12px;
       border: 1px solid var(--GRIS_CLAIR);
-      border-radius: 6px;
-      font-family: 'Inter', sans-serif;
+      border-radius: 10px;
       font-size: 14px;
-      transition: border-color 0.2s;
+      font-family: 'Inter', sans-serif;
+      background: var(--BLANC_CASSE);
     }
-    
-    .form-field input:focus,
-    .form-field select:focus,
-    .form-field textarea:focus {
-      outline: none;
-      border-color: var(--BLEU_PRINCIPAL);
-    }
-    
-    .form-field textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-    
-    .btn-create {
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: 2px solid rgba(58, 121, 141, 0.25); border-color: var(--BLEU_PRINCIPAL); background: white; }
+    .form-field textarea { min-height: 80px; resize: vertical; }
+    .btn-primary {
       width: 100%;
-      padding: 14px;
-      background: var(--BLEU_PRINCIPAL);
-      color: white;
+      min-height: 46px;
+      padding: 10px 18px;
       border: none;
-      border-radius: 6px;
-      font-family: 'Oswald', sans-serif;
-      font-weight: 500;
+      border-radius: 22px;
+      background: var(--BLEU_PRINCIPAL);
+      color: var(--BEIGE);
+      font-family: 'Montserrat', sans-serif;
       font-size: 16px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
     }
-    
-    .btn-create:hover {
-      background: var(--BLEU_CANARD);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(58, 121, 141, 0.3);
+    .btn-primary:hover { background: var(--BLEU_CANARD); transform: translateY(-1px); }
+    .alert { padding: 14px 16px; border-radius: 8px; margin-bottom: 18px; }
+    .alert-success { background: #E8F5E9; color: #2E7D32; border-left: 4px solid #2E7D32; }
+    .alert-error { background: #FFEBEE; color: #C62828; border-left: 4px solid #C62828; }
+    .section-stack { display: grid; gap: 14px; min-width: 0; }
+    .jobs-section, .planning-section { min-width: 0; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-header h2 { font-family: 'Montserrat', sans-serif; color: var(--BLEU_PRINCIPAL); font-size: 28px; }
+    .planning-section { min-width: 0; }
+    .timetable-wrapper { overflow-x: auto; width: 100%; }
+    .timetable { width: 100%; border-collapse: collapse; min-width: 100%; }
+    .timetable th, .timetable td { border: 1px solid var(--GRIS_CLAIR); padding: 8px; vertical-align: top; }
+    .timetable th { background: var(--BLANC_CASSE); font-family: 'Oswald', sans-serif; font-size: 22px; }
+    .hour-col { width: 90px; font-family: 'Oswald', sans-serif; font-size: 22px; color: var(--NOIR); }
+    .slot-cell {
+      padding: 0;
+      background: var(--TURQUOISE);
+      vertical-align: middle;
     }
-    
-    .jobs-section {
-      background: white;
-      border-radius: 12px;
-      padding: 32px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      min-height: 400px;
-    }
-    
-    .section-header {
+    .slot-chip {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid var(--BEIGE);
-    }
-    
-    .section-header h2 {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 600;
-      font-size: 24px;
-      color: var(--BLEU_PRINCIPAL);
-    }
-    
-    .filter-controls {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-    
-    .filter-controls select {
-      padding: 8px 16px;
-      border: 1px solid var(--GRIS_CLAIR);
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    
-    .jobs-grid {
-      display: grid;
-      gap: 20px;
-    }
-    
-    .job-card {
-      border: 1px solid var(--GRIS_CLAIR);
-      border-radius: 8px;
-      padding: 20px;
-      transition: all 0.2s;
-    }
-    
-    .job-card:hover {
-      border-color: var(--BLEU_PRINCIPAL);
-      box-shadow: 0 4px 16px rgba(58, 121, 141, 0.1);
-    }
-    
-    .job-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      margin-bottom: 16px;
-    }
-    
-    .job-meta-row {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    
-    .badge {
-      display: inline-flex;
-      align-items: center;
+      justify-content: center;
+      flex-direction: column;
       gap: 6px;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-family: 'Oswald', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-    }
-    
-    .badge-creneau {
-      background: linear-gradient(135deg, var(--TURQUOISE) 0%, #3fc9b0 100%);
-      color: white;
-    }
-    
-    .badge-type {
-      background: linear-gradient(135deg, var(--BLEU_PRINCIPAL) 0%, var(--BLEU_CANARD) 100%);
-      color: white;
-    }
-    
-    .badge-status {
-      padding: 4px 12px;
-      font-size: 12px;
-    }
-    
-    .badge-complete {
-      background: #E8F5E9;
-      color: #2E7D32;
-    }
-    
-    .badge-partial {
-      background: #FFF3E0;
-      color: #E65100;
-    }
-    
-    .badge-empty {
-      background: #FFEBEE;
-      color: #C62828;
-    }
-    
-    .job-description {
-      margin: 12px 0;
-      padding: 12px;
-      background: var(--BLANC_CASSE);
-      border-left: 3px solid var(--BEIGE);
-      border-radius: 4px;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      padding: 12px 10px;
+      color: var(--NOIR);
       font-size: 14px;
-      color: var(--GRIS_FONCE);
-      font-style: italic;
+      font-weight: 600;
+      text-align: center;
     }
-    
-    .staff-section {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid var(--GRIS_CLAIR);
+    .slot-job-name {
+      width: 100%;
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.35);
     }
-    
-    .staff-section-title {
+    .slot-job-name:last-child {
+      border-bottom: none;
+    }
+    .slot-job-btn {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--NOIR);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 0;
+      text-decoration: none;
+    }
+    .slot-job-btn:hover {
+      text-decoration: underline;
+    }
+    .job-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      padding: 16px;
+    }
+    .job-modal {
+      width: min(560px, 100%);
+      max-height: 80vh;
+      overflow: auto;
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid var(--GRIS_CLAIR);
+      box-shadow: 0 6px 24px rgba(13, 13, 13, 0.2);
+    }
+    .job-modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 12px;
-    }
-    
-    .staff-section-title h4 {
-      font-family: 'Oswald', sans-serif;
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--GRIS_FONCE);
-    }
-    
-    .staff-count {
-      font-size: 13px;
-      color: var(--GRIS_MOYEN);
-    }
-    
-    .staff-list {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    
-    .staff-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      background: linear-gradient(135deg, #F1F8F6 0%, #E8F5E9 100%);
-      border-radius: 6px;
-      border-left: 3px solid var(--TURQUOISE);
-    }
-    
-    .staff-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    
-    .staff-name {
-      font-family: 'Oswald', sans-serif;
-      font-weight: 500;
-      font-size: 15px;
-      color: var(--NOIR);
-    }
-    
-    .staff-email {
-      font-size: 12px;
-      color: var(--GRIS_MOYEN);
-    }
-    
-    .btn-remove {
-      padding: 4px 10px;
-      background: transparent;
-      border: 1px solid var(--ROUGE);
-      color: var(--ROUGE);
-      border-radius: 4px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: 'Oswald', sans-serif;
-    }
-    
-    .btn-remove:hover {
-      background: var(--ROUGE);
-      color: white;
-    }
-    
-    .empty-staff {
-      padding: 20px;
-      text-align: center;
-      color: var(--GRIS_MOYEN);
-      font-size: 14px;
-      background: var(--BLANC_CASSE);
-      border-radius: 6px;
-    }
-    
-    .assign-controls {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    
-    .assign-controls select {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid var(--GRIS_CLAIR);
-      border-radius: 6px;
-      font-size: 14px;
-    }
-    
-    .btn-assign {
-      padding: 10px 20px;
-      background: var(--TURQUOISE);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-family: 'Oswald', sans-serif;
-      font-weight: 500;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    
-    .btn-assign:hover {
-      background: #3fc9b0;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(80, 212, 188, 0.3);
-    }
-    
-    .btn-load {
-      padding: 10px 16px;
-      background: white;
-      color: var(--BLEU_PRINCIPAL);
-      border: 1px solid var(--BLEU_PRINCIPAL);
-      border-radius: 6px;
-      font-family: 'Oswald', sans-serif;
-      font-weight: 500;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    
-    .btn-load:hover {
-      background: var(--BLEU_PRINCIPAL);
-      color: white;
-    }
-    
-    .btn-delete {
-      padding: 8px 16px;
-      background: transparent;
-      border: 1px solid var(--ROUGE);
-      color: var(--ROUGE);
-      border-radius: 6px;
-      font-family: 'Oswald', sans-serif;
-      font-weight: 500;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .btn-delete:hover {
-      background: var(--ROUGE);
-      color: white;
-    }
-    
-    .alert {
-      padding: 16px 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
       gap: 10px;
     }
-    
-    .alert-success {
-      background: #E8F5E9;
-      color: #2E7D32;
-      border-left: 4px solid #2E7D32;
+    .job-modal-close {
+      border: 1px solid var(--BLEU_PRINCIPAL);
+      background: white;
+      color: var(--BLEU_PRINCIPAL);
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
     }
-    
-    .alert-error {
-      background: #FFEBEE;
-      color: #C62828;
-      border-left: 4px solid #C62828;
+    .job-modal-close:hover { background: var(--BLEU_PRINCIPAL); color: var(--BEIGE); }
+    .job-modal-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
     }
-    
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--GRIS_MOYEN);
+    .job-modal-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: var(--BLANC_CASSE);
+      border-left: 3px solid var(--BLEU_PRINCIPAL);
     }
-    
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: var(--GRIS_MOYEN);
+    .jobs-grid { display: grid; gap: 16px; }
+    .job-card { border: 1px solid var(--GRIS_CLAIR); border-radius: 8px; padding: 16px; }
+    .job-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; border-radius: 18px; padding: 5px 10px;
+      font-family: 'Oswald', sans-serif; font-size: 12px;
     }
-    
-    .spinner {
-      border: 3px solid var(--GRIS_CLAIR);
-      border-top: 3px solid var(--BLEU_PRINCIPAL);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
+    .badge-slot { background: var(--BEIGE); color: var(--NOIR); }
+    .badge-type { background: var(--BLEU_PRINCIPAL); color: var(--BEIGE); }
+    .badge-empty { background: #FFEBEE; color: #C62828; }
+    .badge-partial { background: #FFF3E0; color: #E65100; }
+    .badge-complete { background: #E8F5E9; color: #2E7D32; }
+    .job-description { margin-top: 10px; padding: 10px; background: var(--BLANC_CASSE); border-radius: 6px; }
+    .staff-list { display: grid; gap: 6px; margin: 12px 0; }
+    .staff-item {
+      padding: 8px 10px; border-radius: 6px; background: var(--BLANC_CASSE); display: flex; justify-content: space-between; align-items: center;
     }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    .assign-controls { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+    .btn-outline { padding: 8px 12px; border: 1px solid var(--BLEU_PRINCIPAL); background: white; color: var(--BLEU_PRINCIPAL); border-radius: 20px; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .btn-outline:hover { background: var(--BLEU_PRINCIPAL); color: var(--BEIGE); }
+    .btn-danger { padding: 8px 12px; border: 1px solid var(--ROUGE); background: white; color: var(--ROUGE); border-radius: 20px; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .btn-danger:hover { background: var(--ROUGE); color: white; }
+    .empty { color: var(--GRIS_MOYEN); font-size: 14px; padding: 8px 0; }
+    .filter-controls { display: flex; gap: 8px; }
+    .filter-controls select { padding: 8px 10px; border: 1px solid var(--GRIS_CLAIR); border-radius: 18px; background: var(--BLANC_CASSE); }
   </style>
 </head>
 <body>
@@ -455,329 +212,483 @@
     </header>
 
     <main class="jobs-container">
+      <div class="page-header">
+        <h1>Planning Admin</h1>
+        <p class="sous-titre-1" style="cursor: default;">Definir les creneaux puis affecter le staff sur vendredi, samedi et dimanche.</p>
+      </div>
 
       <div id="alert" style="display:none;"></div>
 
-        <div class="content-grid">
-        <div class="create-panel">
-          <h3 class="panel-title">Nouveau Job</h3>
-          <form id="createJobForm">
+      <div class="content-grid">
+        <aside class="create-panel">
+          <h3 class="panel-title">Gestion des Creneaux</h3>
+
+          <form id="createSlotForm">
             <div class="form-field">
-              <label for="creneau">Créneau horaire *</label>
-              <input type="number" id="creneau" name="creneau" min="1" placeholder="Ex: 1, 2, 3..." required>
-            </div>
-            
-            <div class="form-field">
-              <label for="staff_type">Type de staff requis *</label>
-              <select id="staff_type" name="staff_type" required>
-                <option value="">Sélectionner...</option>
-                <option value="1">Bar</option>
-                <option value="2">Cuisine</option>
-                <option value="3">Arbitre Beach Rugby</option>
-                <option value="4">Arbitre Beach Soccer</option>
-                <option value="5">Arbitre Beach Volley</option>
-                <option value="6">Arbitre Dodgeball</option>
-                <option value="7">Arbitre Handball</option>
+              <label for="day_of_week">Jour</label>
+              <select id="day_of_week" required>
+                <option value="vendredi">Vendredi</option>
+                <option value="samedi">Samedi</option>
+                <option value="dimanche">Dimanche</option>
               </select>
             </div>
-            
             <div class="form-field">
-              <label for="staff_needed">Nombre de staff *</label>
-              <input type="number" id="staff_needed" name="staff_needed" min="1" value="1" required>
+              <label for="start_hour">Heure de debut</label>
+              <input id="start_hour" type="number" min="0" max="23" value="9" required>
             </div>
-            
             <div class="form-field">
-              <label for="description">Description</label>
-              <textarea id="description" name="description" placeholder="Détails du job, consignes particulières..."></textarea>
+              <label for="end_hour">Heure de fin</label>
+              <input id="end_hour" type="number" min="1" max="24" value="10" required>
             </div>
-            
-            <button type="submit" class="btn-create">Créer le job</button>
+            <div class="form-field">
+              <label for="slot_label">Libelle (optionnel)</label>
+              <input id="slot_label" type="text" placeholder="Ex: Bar matin">
+            </div>
+            <button class="btn-primary" type="submit">Creer / Mettre a jour le creneau</button>
           </form>
-        </div>
 
-        <div class="jobs-section">
-          <div class="section-header">
-            <h2>Liste des Jobs</h2>
-            <div class="filter-controls">
-              <select id="filterCreneau" onchange="filterJobs()">
-                <option value="">Tous les créneaux</option>
-              </select>
-              <select id="filterType" onchange="filterJobs()">
-                <option value="">Tous les types</option>
-                <option value="1">Bar</option>
-                <option value="2">Cuisine</option>
-                <option value="3">Beach Rugby</option>
-                <option value="4">Beach Soccer</option>
-                <option value="5">Beach Volley</option>
-                <option value="6">Dodgeball</option>
-                <option value="7">Handball</option>
-              </select>
+          <div class="sub-panel">
+            <h4>Nouveau Job</h4>
+            <form id="createJobForm">
+              <div class="form-field">
+                <label for="creneau">Creneau *</label>
+                <select id="creneau" required></select>
+              </div>
+              <div class="form-field">
+                <label for="staff_type">Type de staff *</label>
+                <select id="staff_type" required>
+                  <option value="1">Bar</option>
+                  <option value="2">Cuisine</option>
+                  <option value="3">Arbitre Beach Rugby</option>
+                  <option value="4">Arbitre Beach Soccer</option>
+                  <option value="5">Arbitre Beach Volley</option>
+                  <option value="6">Arbitre Dodgeball</option>
+                  <option value="7">Arbitre Handball</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="staff_needed">Nombre de staff *</label>
+                <input id="staff_needed" type="number" min="1" value="1" required>
+              </div>
+              <div class="form-field">
+                <label for="description">Description</label>
+                <textarea id="description" placeholder="Details et consignes"></textarea>
+              </div>
+              <button type="submit" class="btn-primary">Creer le job</button>
+            </form>
+          </div>
+        </aside>
+
+        <section class="section-stack">
+          <div class="planning-section">
+            <div class="section-header">
+              <h2>Vue Horaire (V/S/D)</h2>
+            </div>
+            <div class="timetable-wrapper">
+              <table class="timetable" id="timetable"></table>
             </div>
           </div>
 
-          <div id="jobsList" class="jobs-grid">
-            <div class="loading">
-              <div class="spinner"></div>
-              <p>Chargement des jobs...</p>
+          <div class="jobs-section">
+            <div class="section-header">
+              <h2>Jobs et Affectations</h2>
+              <div class="filter-controls">
+                <select id="filterDay" onchange="filterJobs()">
+                  <option value="">Tous les jours</option>
+                  <option value="vendredi">Vendredi</option>
+                  <option value="samedi">Samedi</option>
+                  <option value="dimanche">Dimanche</option>
+                </select>
+                <select id="filterType" onchange="filterJobs()">
+                  <option value="">Tous les types</option>
+                  <option value="1">Bar</option>
+                  <option value="2">Cuisine</option>
+                  <option value="3">Beach Rugby</option>
+                  <option value="4">Beach Soccer</option>
+                  <option value="5">Beach Volley</option>
+                  <option value="6">Dodgeball</option>
+                  <option value="7">Handball</option>
+                </select>
+              </div>
             </div>
+            <div id="jobsList" class="jobs-grid"></div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   </div>
 
   <script src="/hamburger.js"></script>
+  <div id="jobModalBackdrop" class="job-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="jobModalTitle">
+    <div class="job-modal">
+      <div class="job-modal-header">
+        <h3 id="jobModalTitle" style="margin:0; color: var(--BLEU_PRINCIPAL);">Détails du job</h3>
+        <button class="job-modal-close" onclick="closeJobModal()">Fermer</button>
+      </div>
+      <p id="jobModalMeta" class="empty" style="margin: 0;"></p>
+      <div id="jobModalBody" class="job-modal-list"></div>
+    </div>
+  </div>
   <script>
+    const dayLabels = { vendredi: 'Vendredi', samedi: 'Samedi', dimanche: 'Dimanche' };
+    const dayOrder = ['vendredi', 'samedi', 'dimanche'];
     const staffTypeConfig = {
-      1: { name: 'Bar' },
-      2: { name: 'Cuisine' },
-      3: { name: 'Beach Rugby' },
-      4: { name: 'Beach Soccer' },
-      5: { name: 'Beach Volley' },
-      6: { name: 'Dodgeball' },
-      7: { name: 'Handball' }
+      1: { name: 'Bar' }, 2: { name: 'Cuisine' }, 3: { name: 'Beach Rugby' },
+      4: { name: 'Beach Soccer' }, 5: { name: 'Beach Volley' }, 6: { name: 'Dodgeball' }, 7: { name: 'Handball' }
     };
 
+    let allSlots = [];
     let allJobs = [];
 
     function showAlert(message, isError = false) {
       const alert = document.getElementById('alert');
       alert.textContent = message;
       alert.className = isError ? 'alert alert-error' : 'alert alert-success';
-      alert.style.display = 'flex';
-      setTimeout(() => alert.style.display = 'none', 5000);
+      alert.style.display = 'block';
+      setTimeout(() => { alert.style.display = 'none'; }, 4500);
     }
 
-    async function loadJobs() {
+    function formatHour(hour) {
+      return String(hour).padStart(2, '0') + ':00';
+    }
+
+    function slotLabel(slot) {
+      return `${dayLabels[slot.day_of_week] || slot.day_of_week} ${formatHour(slot.start_hour)}-${formatHour(slot.end_hour)}`;
+    }
+
+    function jobSlotText(job) {
+      if (!job.day_of_week) return `Creneau #${job.creneau}`;
+      return `${dayLabels[job.day_of_week]} ${formatHour(job.start_hour)}-${formatHour(job.end_hour)}`;
+    }
+
+    async function loadData() {
       try {
-        const res = await fetch('/api/jobs', { credentials: 'include' });
-        if (!res.ok) throw new Error('Erreur de chargement');
-        
-        allJobs = await res.json();
-        updateCreneauFilter();
-        renderJobs(allJobs);
+        const [slotsRes, jobsRes] = await Promise.all([
+          fetch('/api/creneaux', { credentials: 'include' }),
+          fetch('/api/jobs', { credentials: 'include' })
+        ]);
+
+        if (!slotsRes.ok) throw new Error('Impossible de charger les creneaux');
+        if (!jobsRes.ok) throw new Error('Impossible de charger les jobs');
+
+        allSlots = await slotsRes.json();
+        allJobs = await jobsRes.json();
+        renderSlotSelect();
+        renderTimetable();
+        filterJobs();
       } catch (err) {
-        showAlert('Erreur lors du chargement des jobs', true);
+        showAlert(err.message || 'Erreur de chargement', true);
       }
     }
 
-    function updateCreneauFilter() {
-      const creneaux = [...new Set(allJobs.map(j => j.creneau))].sort((a, b) => a - b);
-      const select = document.getElementById('filterCreneau');
-      const current = select.value;
-      select.innerHTML = '<option value="">Tous les créneaux</option>' +
-        creneaux.map(c => `<option value="${c}">Créneau ${c}</option>`).join('');
-      select.value = current;
+    function renderSlotSelect() {
+      const select = document.getElementById('creneau');
+      if (!allSlots.length) {
+        select.innerHTML = '<option value="">Aucun creneau</option>';
+        return;
+      }
+      select.innerHTML = allSlots.map(slot =>
+        `<option value="${slot.id}">${slotLabel(slot)}</option>`
+      ).join('');
+    }
+
+    function getJobDisplayName(job) {
+      const description = String(job.description || '').trim();
+      if (description) return description;
+      const typeName = staffTypeConfig[job.staff_type]?.name || 'Job';
+      return `${typeName} (#${job.id})`;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function openJobModal(jobId) {
+      const job = allJobs.find((j) => j.id === jobId);
+      if (!job) {
+        showAlert('Job introuvable', true);
+        return;
+      }
+
+      const title = document.getElementById('jobModalTitle');
+      const meta = document.getElementById('jobModalMeta');
+      const body = document.getElementById('jobModalBody');
+      const backdrop = document.getElementById('jobModalBackdrop');
+
+      title.textContent = getJobDisplayName(job);
+      const slotText = `${dayLabels[job.day_of_week] || job.day_of_week} ${formatHour(job.start_hour)}-${formatHour(job.end_hour)}`;
+      const typeText = staffTypeConfig[job.staff_type]?.name || 'Type inconnu';
+      meta.textContent = `${slotText} • ${typeText} • ${job.staff_needed || 1} requis`;
+
+      const assigned = Array.isArray(job.assigned_staff_details) ? job.assigned_staff_details : [];
+      if (!assigned.length) {
+        body.innerHTML = '<div class="empty">Aucune personne assignée pour le moment.</div>';
+      } else {
+        body.innerHTML = assigned.map((staff) => `
+          <div class="job-modal-item">
+            <strong>${escapeHtml(staff.first_name || '')} ${escapeHtml(staff.last_name || '')}</strong><br>
+            <span>${escapeHtml(staff.email || '')}</span>
+          </div>
+        `).join('');
+      }
+
+      backdrop.style.display = 'flex';
+    }
+
+    function closeJobModal() {
+      const backdrop = document.getElementById('jobModalBackdrop');
+      backdrop.style.display = 'none';
+    }
+
+    function renderTimetable() {
+      const table = document.getElementById('timetable');
+      const rows = [];
+      rows.push(`
+        <thead>
+          <tr>
+            <th class="hour-col">Heure</th>
+            <th>Vendredi</th>
+            <th>Samedi</th>
+            <th>Dimanche</th>
+          </tr>
+        </thead>
+      `);
+
+      const dayJobGroups = {};
+      const skipUntilHour = {};
+
+      dayOrder.forEach((day) => {
+        const dayJobs = allJobs
+          .filter((job) => job.day_of_week === day && Number.isInteger(job.start_hour) && Number.isInteger(job.end_hour))
+          .sort((a, b) => (a.start_hour - b.start_hour) || (a.end_hour - b.end_hour) || (a.id - b.id));
+
+        const grouped = {};
+        dayJobs.forEach((job) => {
+          const key = `${job.start_hour}-${job.end_hour}`;
+          if (!grouped[key]) {
+            grouped[key] = {
+              start_hour: job.start_hour,
+              end_hour: job.end_hour,
+              jobs: []
+            };
+          }
+          grouped[key].jobs.push(job);
+        });
+
+        dayJobGroups[day] = Object.values(grouped).sort((a, b) =>
+          (a.start_hour - b.start_hour) || (a.end_hour - b.end_hour)
+        );
+        skipUntilHour[day] = -1;
+      });
+
+      const body = [];
+      for (let hour = 0; hour < 24; hour += 1) {
+        const dayCells = dayOrder.map((day) => {
+          if (hour < skipUntilHour[day]) {
+            return null;
+          }
+
+          const startingGroup = dayJobGroups[day].find((group) => group.start_hour === hour);
+          if (!startingGroup) {
+            return `<td><span class="empty">-</span></td>`;
+          }
+
+          const rowSpan = Math.max(1, startingGroup.end_hour - startingGroup.start_hour);
+          skipUntilHour[day] = startingGroup.end_hour;
+          const jobsMarkup = startingGroup.jobs
+            .map((job) => `<div class="slot-job-name"><button type="button" class="slot-job-btn" onclick="openJobModal(${job.id})">${escapeHtml(getJobDisplayName(job))}</button></div>`)
+            .join('');
+
+          return `<td class="slot-cell" rowspan="${rowSpan}"><span class="slot-chip">${jobsMarkup}</span></td>`;
+        });
+
+        body.push(`
+          <tr>
+            <td class="hour-col">${formatHour(hour)}</td>
+            ${dayCells.filter(Boolean).join('')}
+          </tr>
+        `);
+      }
+
+      table.innerHTML = rows.join('') + `<tbody>${body.join('')}</tbody>`;
     }
 
     function filterJobs() {
-      const creneauFilter = document.getElementById('filterCreneau').value;
+      const dayFilter = document.getElementById('filterDay').value;
       const typeFilter = document.getElementById('filterType').value;
-      
       const filtered = allJobs.filter(job => {
-        if (creneauFilter && job.creneau != creneauFilter) return false;
-        if (typeFilter && job.staff_type != typeFilter) return false;
+        if (dayFilter && job.day_of_week !== dayFilter) return false;
+        if (typeFilter && String(job.staff_type) !== typeFilter) return false;
         return true;
       });
-      
       renderJobs(filtered);
     }
 
     function renderJobs(jobs) {
       const container = document.getElementById('jobsList');
-      
-      if (jobs.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-            <p>Aucun job trouvé. Créez-en un pour commencer !</p>
-          </div>
-        `;
+      if (!jobs.length) {
+        container.innerHTML = '<p class="empty">Aucun job sur ce filtre.</p>';
         return;
       }
-      
-      container.innerHTML = jobs.map(job => renderJobCard(job)).join('');
+      container.innerHTML = jobs.map(renderJobCard).join('');
     }
 
     function renderJobCard(job) {
-      const staffType = staffTypeConfig[job.staff_type] || { name: 'Inconnu' };
+      const type = staffTypeConfig[job.staff_type] || { name: 'Inconnu' };
       const assigned = job.assigned_staff_details || [];
-      const staffNeeded = job.staff_needed || 1;
-      const remaining = staffNeeded - assigned.length;
-      
-      let statusBadge = '';
-      if (assigned.length === 0) {
-        statusBadge = '<span class="badge badge-status badge-empty">Aucun staff</span>';
-      } else if (remaining > 0) {
-        statusBadge = `<span class="badge badge-status badge-partial">${remaining} manquant(s)</span>`;
-      } else {
-        statusBadge = '<span class="badge badge-status badge-complete">Complet</span>';
-      }
-      
+      const needed = job.staff_needed || 1;
+      const remaining = needed - assigned.length;
+      const status = assigned.length === 0
+        ? '<span class="badge badge-empty">Aucun staff</span>'
+        : remaining > 0
+          ? `<span class="badge badge-partial">${remaining} manquant(s)</span>`
+          : '<span class="badge badge-complete">Complet</span>';
+
       return `
-        <div class="job-card" data-job-id="${job.id}">
-          <div class="job-card-header">
-            <div class="job-meta-row">
-              <span class="badge badge-creneau">Créneau ${job.creneau}</span>
-              <span class="badge badge-type">${staffType.name}</span>
-              ${statusBadge}
+        <div class="job-card">
+          <div class="job-row">
+            <div>
+              <span class="badge badge-slot">${jobSlotText(job)}</span>
+              <span class="badge badge-type">${type.name}</span>
+              ${status}
             </div>
-            <button class="btn-delete" onclick="deleteJob(${job.id})">Supprimer</button>
+            <button class="btn-danger" onclick="deleteJob(${job.id})">Supprimer</button>
           </div>
-          
           ${job.description ? `<div class="job-description">${job.description}</div>` : ''}
-          
-          <div class="staff-section">
-            <div class="staff-section-title">
-              <h4>Staff Assigné</h4>
-              <span class="staff-count">${assigned.length} / ${staffNeeded}</span>
-            </div>
-            
-            <div class="staff-list">
-              ${assigned.length > 0 ? assigned.map(staff => `
-                <div class="staff-item">
-                  <div class="staff-info">
-                    <div class="staff-name">${staff.first_name} ${staff.last_name}</div>
-                    <div class="staff-email">${staff.email}</div>
-                  </div>
-                  <button class="btn-remove" onclick="unassignStaff(${job.id}, ${staff.id}, '${staff.first_name} ${staff.last_name}')">
-                    Retirer
-                  </button>
-                </div>
-              `).join('') : '<div class="empty-staff">Aucun staff assigné pour le moment</div>'}
-            </div>
-            
-            ${remaining > 0 ? `
-              <div class="assign-controls">
-                <select id="staff-select-${job.id}">
-                  <option value="">Sélectionner un staff...</option>
-                </select>
-                <button class="btn-load" onclick="loadAvailableStaff(${job.id}, ${job.creneau}, ${job.staff_type})">
-                  Voir disponibles
-                </button>
-                <button class="btn-assign" onclick="assignStaff(${job.id})">
-                  Assigner
-                </button>
+
+          <div class="staff-list">
+            ${assigned.length ? assigned.map(staff => `
+              <div class="staff-item">
+                <span>${staff.first_name} ${staff.last_name}</span>
+                <button class="btn-danger" onclick="unassignStaff(${job.id}, ${staff.id}, '${staff.first_name} ${staff.last_name}')">Retirer</button>
               </div>
-            ` : ''}
+            `).join('') : '<p class="empty">Aucun staff assigne</p>'}
           </div>
+
+          ${remaining > 0 ? `
+            <div class="assign-controls">
+              <select id="staff-select-${job.id}"><option value="">Selectionner un staff...</option></select>
+              <button class="btn-outline" onclick="loadAvailableStaff(${job.id}, ${job.creneau}, ${job.staff_type})">Disponibles</button>
+              <button class="btn-primary" style="padding:8px 12px;" onclick="assignStaff(${job.id})">Assigner</button>
+            </div>
+          ` : ''}
         </div>
       `;
     }
 
-    async function loadAvailableStaff(jobId, creneau, staffType) {
+    async function loadAvailableStaff(jobId, creneauId, staffType) {
       try {
-        const res = await fetch(`/api/jobs/available-staff?creneau=${creneau}&staff_type=${staffType}`, {
-          credentials: 'include'
-        });
-        if (!res.ok) throw new Error('Erreur');
-        
+        const res = await fetch(`/api/jobs/available-staff?creneau=${creneauId}&staff_type=${staffType}`, { credentials: 'include' });
+        if (!res.ok) throw new Error(await res.text());
         const staff = await res.json();
         const select = document.getElementById(`staff-select-${jobId}`);
-        
-        if (staff.length === 0) {
-          select.innerHTML = '<option value="">Aucun staff disponible</option>';
-          showAlert('Aucun staff qualifié et disponible sur ce créneau', true);
+        if (!select) return;
+        if (!staff.length) {
+          select.innerHTML = '<option value="">Aucun disponible</option>';
+          showAlert('Aucun staff qualifie disponible sur ce creneau', true);
           return;
         }
-        
-        select.innerHTML = '<option value="">Sélectionner un staff...</option>' + 
+        select.innerHTML = '<option value="">Selectionner un staff...</option>' +
           staff.map(s => `<option value="${s.id}">${s.first_name} ${s.last_name} (${s.email})</option>`).join('');
-        
-        showAlert(`${staff.length} staff disponible(s) trouvé(s)`);
       } catch (err) {
-        showAlert('Erreur lors du chargement du staff', true);
+        showAlert(err.message || 'Erreur de chargement staff', true);
       }
     }
 
     async function assignStaff(jobId) {
       const select = document.getElementById(`staff-select-${jobId}`);
-      const staffId = parseInt(select.value);
-      
+      const staffId = Number.parseInt(select?.value || '', 10);
       if (!staffId) {
-        showAlert('Sélectionnez un staff à assigner', true);
+        showAlert('Selectionnez un staff', true);
         return;
       }
-      
+
       try {
         const job = allJobs.find(j => j.id === jobId);
         if (!job) throw new Error('Job introuvable');
-        
-        const currentAssigned = (job.staff_assigned || []);
-        const newAssigned = [...currentAssigned, staffId];
-        
+        const current = Array.isArray(job.staff_assigned) ? job.staff_assigned : [];
         const res = await fetch(`/api/jobs/${jobId}/assign`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ staff_ids: newAssigned })
+          body: JSON.stringify({ staff_ids: [...current, staffId] })
         });
-        
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText);
-        }
-        
-        showAlert('Staff assigné avec succès');
-        await loadJobs();
+        if (!res.ok) throw new Error(await res.text());
+        showAlert('Staff assigne');
+        await loadData();
       } catch (err) {
-        showAlert(err.message || 'Erreur lors de l\'assignation', true);
+        showAlert(err.message || 'Erreur d\'assignation', true);
       }
     }
 
     async function unassignStaff(jobId, staffId, staffName) {
       if (!confirm(`Retirer ${staffName} de ce job ?`)) return;
-      
       try {
         const job = allJobs.find(j => j.id === jobId);
         if (!job) throw new Error('Job introuvable');
-        
-        const newAssigned = (job.staff_assigned || []).filter(id => id !== staffId);
-        
+        const current = Array.isArray(job.staff_assigned) ? job.staff_assigned : [];
         const res = await fetch(`/api/jobs/${jobId}/assign`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ staff_ids: newAssigned })
+          body: JSON.stringify({ staff_ids: current.filter(id => id !== staffId) })
         });
-        
-        if (!res.ok) throw new Error('Erreur');
-        
-        showAlert('Staff retiré du job');
-        await loadJobs();
+        if (!res.ok) throw new Error(await res.text());
+        showAlert('Staff retire');
+        await loadData();
       } catch (err) {
-        showAlert('Erreur lors du retrait', true);
+        showAlert(err.message || 'Erreur de retrait', true);
       }
     }
 
     async function deleteJob(jobId) {
-      if (!confirm('Supprimer ce job définitivement ?')) return;
-      
+      if (!confirm('Supprimer ce job ?')) return;
       try {
-        const res = await fetch(`/api/jobs/${jobId}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-        
-        if (!res.ok) throw new Error('Erreur');
-        
-        showAlert('Job supprimé');
-        await loadJobs();
+        const res = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE', credentials: 'include' });
+        if (!res.ok) throw new Error(await res.text());
+        showAlert('Job supprime');
+        await loadData();
       } catch (err) {
-        showAlert('Erreur lors de la suppression', true);
+        showAlert(err.message || 'Erreur de suppression', true);
       }
     }
 
+    document.getElementById('createSlotForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        day_of_week: document.getElementById('day_of_week').value,
+        start_hour: Number.parseInt(document.getElementById('start_hour').value, 10),
+        end_hour: Number.parseInt(document.getElementById('end_hour').value, 10),
+        label: document.getElementById('slot_label').value
+      };
+      try {
+        const res = await fetch('/api/creneaux', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showAlert('Creneau enregistre');
+        await loadData();
+      } catch (err) {
+        showAlert(err.message || 'Erreur creation creneau', true);
+      }
+    });
+
     document.getElementById('createJobForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      const formData = new FormData(e.target);
       const data = {
-        creneau: parseInt(formData.get('creneau')),
-        staff_type: parseInt(formData.get('staff_type')),
-        staff_needed: parseInt(formData.get('staff_needed')),
-        description: formData.get('description')
+        creneau: Number.parseInt(document.getElementById('creneau').value, 10),
+        staff_type: Number.parseInt(document.getElementById('staff_type').value, 10),
+        staff_needed: Number.parseInt(document.getElementById('staff_needed').value, 10),
+        description: document.getElementById('description').value
       };
-      
       try {
         const res = await fetch('/api/jobs', {
           method: 'POST',
@@ -785,21 +696,22 @@
           credentials: 'include',
           body: JSON.stringify(data)
         });
-        
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText);
-        }
-        
-        showAlert('Job créé avec succès');
+        if (!res.ok) throw new Error(await res.text());
         e.target.reset();
-        await loadJobs();
+        showAlert('Job cree');
+        await loadData();
       } catch (err) {
-        showAlert(err.message || 'Erreur lors de la création', true);
+        showAlert(err.message || 'Erreur creation job', true);
       }
     });
 
-    loadJobs();
+    loadData();
+
+    document.getElementById('jobModalBackdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'jobModalBackdrop') {
+        closeJobModal();
+      }
+    });
   </script>
 </body>
 </html>

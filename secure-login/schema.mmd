@@ -1,0 +1,58 @@
+erDiagram
+  users {
+    int id PK
+    varchar username
+    varchar email
+    varchar password_hash
+    varchar first_name
+    varchar last_name
+    varchar phone
+    varchar gender
+    int is_admin
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  session {
+    varchar sid PK
+    json sess
+    timestamp expire
+  }
+
+  goodies_orders {
+    int id PK
+    int user_id FK
+    int tshirt_qty
+    int gourd_qty
+    int goodie3_qty
+    timestamp created_at
+  }
+
+  staff {
+    int id PK
+    int user_id FK
+    int bar
+    int cuisine
+    int arbitre_beach_rugby
+    int arbitre_beach_soccer
+    int arbitre_beach_volley
+    int arbitre_dodgeball
+    int arbitre_handball
+    varchar staff_type
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  jobs {
+    int id PK
+    int creneau
+    int staff_needed
+    int staff_type
+    text description
+    int[] staff_assigned
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  users ||--o{ goodies_orders : places
+  users ||--o| staff : has
