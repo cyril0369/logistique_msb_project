@@ -88,7 +88,9 @@ const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const SCRIPT_RUNNER_PATH = path.join(__dirname, "logistique_msb_project", "V2", "run_v2_with_db.py");
+const SCRIPT_RUNNER_PATH = fs.existsSync(path.join(__dirname, "python", "run_v2_with_db.py"))
+  ? path.join(__dirname, "python", "run_v2_with_db.py")
+  : path.join(__dirname, "logistique_msb_project", "V2", "run_v2_with_db.py");
 const SCRIPT_RUNNER_CWD = path.dirname(SCRIPT_RUNNER_PATH);
 const SCRIPT_TIMEOUT_MS = 10 * 60 * 1000;
 const SCRIPT_NAMES = new Set(["creer_poules", "planning_staff", "planning_tournoi", "all"]);
@@ -113,6 +115,7 @@ function resolvePythonBin() {
 
 function runPlanningScript(scriptName, options = {}) {
   const writeDb = options.writeDb !== false;
+  const preserveExistingStaff = options.preserveExistingStaff === true;
   const maxParPoule = Number.isInteger(options.maxParPoule) && options.maxParPoule > 0
     ? options.maxParPoule
     : 4;
@@ -128,6 +131,10 @@ function runPlanningScript(scriptName, options = {}) {
 
     if (writeDb) {
       args.push("--write-db");
+    }
+
+    if (preserveExistingStaff) {
+      args.push("--preserve-existing-staff");
     }
 
     const pythonCmd = resolvePythonBin();
@@ -840,6 +847,7 @@ app.get("/api/admin/scripts", requireAuth, requireAdmin, (req, res) => {
 app.post("/api/admin/scripts/:scriptName/run", requireAuth, requireAdmin, async (req, res) => {
   const { scriptName } = req.params;
   const writeDb = req.body?.write_db !== false;
+  const preserveExistingStaff = req.body?.preserve_existing_staff === true;
   const maxParPoule = Number.parseInt(req.body?.max_par_poule ?? "4", 10);
 
   if (!SCRIPT_NAMES.has(scriptName)) {
@@ -858,6 +866,7 @@ app.post("/api/admin/scripts/:scriptName/run", requireAuth, requireAdmin, async 
     isPlanningScriptRunning = true;
     const result = await runPlanningScript(scriptName, {
       writeDb,
+      preserveExistingStaff,
       maxParPoule,
     });
 

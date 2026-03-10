@@ -168,33 +168,99 @@ def write_poules(conn, poules):
                 )
 
 
-def write_affectations_staff(conn, affectations):
+def write_affectations_staff(conn, affectations, preserve_existing=False):
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM affectation_staff")
-        for aff in affectations:
+        if not preserve_existing:
+            cur.execute("DELETE FROM affectation_staff")
+            for aff in affectations:
+                cur.execute(
+                    """
+                    INSERT INTO affectation_staff (id_staffeur, id_job)
+                    VALUES (%s, %s)
+                    ON CONFLICT (id_staffeur, id_job) DO NOTHING
+                    """,
+                    (aff["id_staffeur"], aff["id_job"]),
+                )
+
+            # Keep existing jobs table in sync for current app screens.
+            cur.execute("UPDATE jobs SET staff_assigned = '{}'::int[]")
             cur.execute(
                 """
-                INSERT INTO affectation_staff (id_staffeur, id_job)
-                VALUES (%s, %s)
-                ON CONFLICT (id_staffeur, id_job) DO NOTHING
-                """,
-                (aff["id_staffeur"], aff["id_job"]),
+                UPDATE jobs j
+                SET staff_assigned = src.staff_ids
+                FROM (
+                  SELECT id_job, array_agg(id_staffeur ORDER BY id_staffeur)::int[] AS staff_ids
+                  FROM affectation_staff
+                  GROUP BY id_job
+                ) AS src
+                WHERE j.id = src.id_job
+                """
             )
+            return
 
-        # Keep existing jobs table in sync for current app screens.
-        cur.execute("UPDATE jobs SET staff_assigned = '{}'::int[]")
         cur.execute(
             """
-            UPDATE jobs j
-            SET staff_assigned = src.staff_ids
-            FROM (
-              SELECT id_job, array_agg(id_staffeur ORDER BY id_staffeur)::int[] AS staff_ids
-              FROM affectation_staff
-              GROUP BY id_job
-            ) AS src
-            WHERE j.id = src.id_job
+            SELECT id, creneau, COALESCE(staff_needed, 1) AS staff_needed,
+                   COALESCE(staff_assigned, '{}'::int[]) AS staff_assigned
+            FROM jobs
             """
         )
+        jobs_rows = cur.fetchall()
+
+        job_meta = {}
+        merged_by_job = {}
+        busy_by_creneau = defaultdict(set)
+
+        for job_id, creneau_id, staff_needed, staff_assigned in jobs_rows:
+            assigned = [int(s) for s in (staff_assigned or [])]
+            job_meta[int(job_id)] = {
+                "creneau": int(creneau_id) if creneau_id is not None else None,
+                "staff_needed": int(staff_needed) if staff_needed is not None else 1,
+            }
+            merged_by_job[int(job_id)] = list(dict.fromkeys(assigned))
+            if creneau_id is not None:
+                busy_by_creneau[int(creneau_id)].update(merged_by_job[int(job_id)])
+
+        for aff in affectations:
+            job_id = int(aff["id_job"])
+            staff_id = int(aff["id_staffeur"])
+
+            meta = job_meta.get(job_id)
+            if not meta:
+                continue
+
+            existing = merged_by_job.setdefault(job_id, [])
+            if staff_id in existing:
+                continue
+            if len(existing) >= meta["staff_needed"]:
+                continue
+
+            creneau_id = meta["creneau"]
+            if creneau_id is not None and staff_id in busy_by_creneau[creneau_id]:
+                continue
+
+            existing.append(staff_id)
+            if creneau_id is not None:
+                busy_by_creneau[creneau_id].add(staff_id)
+
+        cur.execute("DELETE FROM affectation_staff")
+        for job_id, staff_ids in merged_by_job.items():
+            for staff_id in staff_ids:
+                cur.execute(
+                    """
+                    INSERT INTO affectation_staff (id_staffeur, id_job)
+                    VALUES (%s, %s)
+                    ON CONFLICT (id_staffeur, id_job) DO NOTHING
+                    """,
+                    (staff_id, job_id),
+                )
+
+        cur.execute("UPDATE jobs SET staff_assigned = '{}'::int[]")
+        for job_id, staff_ids in merged_by_job.items():
+            cur.execute(
+                "UPDATE jobs SET staff_assigned = %s::int[] WHERE id = %s",
+                (staff_ids, job_id),
+            )
 
 
 def fetch_poules_from_db(conn):
@@ -228,13 +294,17 @@ def run_creer_poules(conn, max_par_poule, write_db):
     }
 
 
-def run_planning_staff(conn, write_db):
+def run_planning_staff(conn, write_db, preserve_existing_staff=False):
     creneaux = fetch_creneaux(conn)
     staffeurs = fetch_staffeurs(conn)
     jobs = fetch_jobs(conn)
     planning_staff = generer_planning(staffeurs, jobs, creneaux)
     if write_db:
-        write_affectations_staff(conn, planning_staff["affectations"])
+        write_affectations_staff(
+            conn,
+            planning_staff["affectations"],
+            preserve_existing=preserve_existing_staff,
+        )
     stats = planning_staff["stats"]
     return {
         "creneaux": len(creneaux),
@@ -330,6 +400,11 @@ def main():
         action="store_true",
         help="Persist generated poules/affectations/matchs in DB",
     )
+    parser.add_argument(
+        "--preserve-existing-staff",
+        action="store_true",
+        help="Keep existing staff assignments and only add new ones where slots remain",
+    )
     args = parser.parse_args()
 
     load_dotenv()
@@ -349,7 +424,7 @@ def main():
             if result["sample"]:
                 print("SAMPLE=", result["sample"])
         elif args.script == "planning_staff":
-            result = run_planning_staff(conn, args.write_db)
+            result = run_planning_staff(conn, args.write_db, args.preserve_existing_staff)
             print("SCRIPT=planning_staff")
             print(f"creneaux={result['creneaux']} staffeurs={result['staffeurs']} jobs={result['jobs']}")
             print(f"affectations_staff={result['affectations_staff']}")
@@ -366,7 +441,7 @@ def main():
                 print("SAMPLE=", result["sample"])
         else:
             a = run_creer_poules(conn, args.max_par_poule, args.write_db)
-            b = run_planning_staff(conn, args.write_db)
+            b = run_planning_staff(conn, args.write_db, args.preserve_existing_staff)
             c = run_planning_tournoi(conn, args.max_par_poule, args.write_db)
             print("SCRIPT=all")
             print(f"equipes={a['equipes']} poules={a['poules']}")
