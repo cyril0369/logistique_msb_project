@@ -14,18 +14,30 @@ except Exception:  # pragma: no cover - optional dependency
         return False
 
 from creer_poules import creer_poules
-from planning_staff import generer_planning
 from planning_tournoi import generer_planning_tournoi
 
-STAFF_COLUMN_TO_COMPETENCE_ID = {
-    "bar": 1,
-    "cuisine": 2,
-    "arbitre_beach_rugby": 3,
-    "arbitre_beach_soccer": 4,
-    "arbitre_beach_volley": 5,
-    "arbitre_dodgeball": 6,
-    "arbitre_handball": 7,
-}
+try:
+    from planning_staff import generer_planning
+except ImportError:  # pragma: no cover - fallback when executed from repo root
+    from apps.api.python.planning_staff import generer_planning
+
+DEFAULT_DAY_ORDER = ["vendredi", "samedi", "dimanche"]
+
+
+def is_night_hour(start_hour):
+    return int(start_hour) >= 18 or int(start_hour) < 8
+
+
+def is_staff_shift_compatible(staff_type, start_hour):
+    normalized = str(staff_type or "mixte").strip().lower()
+    if normalized not in {"jour", "nuit", "mixte"}:
+        normalized = "mixte"
+    night = is_night_hour(start_hour)
+    if normalized == "jour":
+        return not night
+    if normalized == "nuit":
+        return night
+    return True
 
 
 def fetch_equipes(conn):
@@ -68,6 +80,25 @@ def fetch_creneaux(conn):
         return [dict(r) for r in cur.fetchall()]
 
 
+def ensure_default_creneaux(conn):
+    """Ensure a complete hourly grid for each event day (0->1 ... 23->24)."""
+    with conn.cursor() as cur:
+        for day_of_week in DEFAULT_DAY_ORDER:
+            day_label = day_of_week.capitalize()
+            for start_hour in range(0, 24):
+                end_hour = start_hour + 1
+                label = f"{day_label} {start_hour:02d}:00-{end_hour:02d}:00"
+                cur.execute(
+                    """
+                    INSERT INTO creneaux (day_of_week, start_hour, end_hour, label)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (day_of_week, start_hour, end_hour)
+                    DO UPDATE SET label = EXCLUDED.label
+                    """,
+                    (day_of_week, start_hour, end_hour, label),
+                )
+
+
 def fetch_staffeurs(conn):
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("SELECT id AS id_creneau FROM creneaux ORDER BY id")
@@ -78,43 +109,40 @@ def fetch_staffeurs(conn):
             """
             SELECT
               s.id AS id_staffeur,
+                                                        s.id AS id_staff,
+                                                        s.user_id AS user_id,
+                                                        COALESCE(s.staff_type, 'mixte') AS type_staff,
               8 AS preference_heures_max,
               3 AS contrainte_heures_consecutives_max,
               COALESCE(array_agg(DISTINCT sd.id_creneau) FILTER (WHERE sd.id_creneau IS NOT NULL), '{}') AS dispos,
               COALESCE(array_agg(DISTINCT sc.id_competence) FILTER (WHERE sc.id_competence IS NOT NULL), '{}') AS competences
             FROM staff s
+                        JOIN users u ON u.id = s.user_id
             LEFT JOIN staffeur_disponibilite sd ON sd.id_staffeur = s.id
             LEFT JOIN staffeur_competence sc ON sc.id_staffeur = s.id
+            WHERE u.is_admin = 0 AND u.is_staff = 1
             GROUP BY s.id
             ORDER BY s.id
             """
         )
         rows = [dict(r) for r in cur.fetchall()]
 
-    # Fallback competence mapping from existing staff boolean columns.
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(
-            """
-            SELECT id, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer,
-                   arbitre_beach_volley, arbitre_dodgeball, arbitre_handball
-            FROM staff
-            ORDER BY id
-            """
-        )
-        flags = {r["id"]: dict(r) for r in cur.fetchall()}
-
     for row in rows:
-        staff_id = row["id_staffeur"]
+        staff_id = int(row["id_staff"])
+        row["user_id"] = int(row["user_id"])
+        row["id_staffeur"] = staff_id
+        row["id_staff"] = staff_id
+
+        staff_type = str(row.get("type_staff") or "mixte").strip().lower()
+        if staff_type not in {"jour", "nuit", "mixte"}:
+            staff_type = "mixte"
+        row["type_staff"] = staff_type
+
         # If no explicit availability is stored, consider the staffer available on all slots.
         if not row.get("dispos"):
             row["dispos"] = list(all_creneau_ids)
 
-        existing = set(row.get("competences") or [])
-        flag_row = flags.get(staff_id, {})
-        for col, comp_id in STAFF_COLUMN_TO_COMPETENCE_ID.items():
-            if int(flag_row.get(col) or 0) == 1:
-                existing.add(comp_id)
-        row["competences"] = sorted(existing)
+        row["competences"] = sorted({int(comp_id) for comp_id in (row.get("competences") or [])})
 
     return rows
 
@@ -178,6 +206,18 @@ def write_poules(conn, poules):
 
 def write_affectations_staff(conn, affectations, preserve_existing=False):
     with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT s.id AS staff_id, s.user_id, COALESCE(s.staff_type, 'mixte') AS staff_type
+            FROM staff s
+            JOIN users u ON u.id = s.user_id
+            WHERE u.is_admin = 0 AND u.is_staff = 1
+            """
+        )
+        staff_rows = cur.fetchall()
+        user_to_staff = {int(user_id): int(staff_id) for staff_id, user_id, _ in staff_rows}
+        user_shift_map = {int(user_id): str(staff_type) for staff_id, user_id, staff_type in staff_rows}
+
         if not preserve_existing:
             cur.execute("DELETE FROM affectation_staff")
             for aff in affectations:
@@ -192,25 +232,28 @@ def write_affectations_staff(conn, affectations, preserve_existing=False):
 
             # Keep existing jobs table in sync for current app screens.
             cur.execute("UPDATE jobs SET staff_assigned = '{}'::int[]")
-            cur.execute(
-                """
-                UPDATE jobs j
-                SET staff_assigned = src.staff_ids
-                FROM (
-                  SELECT id_job, array_agg(id_staffeur ORDER BY id_staffeur)::int[] AS staff_ids
-                  FROM affectation_staff
-                  GROUP BY id_job
-                ) AS src
-                WHERE j.id = src.id_job
-                """
-            )
+            job_to_user_ids = defaultdict(list)
+            for aff in affectations:
+                user_id = aff.get("id_user")
+                if user_id is None:
+                    continue
+                job_to_user_ids[int(aff["id_job"])].append(int(user_id))
+
+            for job_id, user_ids in job_to_user_ids.items():
+                ordered_unique_user_ids = list(dict.fromkeys(sorted(user_ids)))
+                cur.execute(
+                    "UPDATE jobs SET staff_assigned = %s::int[] WHERE id = %s",
+                    (ordered_unique_user_ids, job_id),
+                )
             return
 
         cur.execute(
             """
-            SELECT id, creneau, COALESCE(staff_needed, 1) AS staff_needed,
+            SELECT j.id, j.creneau, COALESCE(j.staff_needed, 1) AS staff_needed,
+                   c.start_hour,
                    COALESCE(staff_assigned, '{}'::int[]) AS staff_assigned
-            FROM jobs
+            FROM jobs j
+            JOIN creneaux c ON c.id = j.creneau
             """
         )
         jobs_rows = cur.fetchall()
@@ -219,41 +262,59 @@ def write_affectations_staff(conn, affectations, preserve_existing=False):
         merged_by_job = {}
         busy_by_creneau = defaultdict(set)
 
-        for job_id, creneau_id, staff_needed, staff_assigned in jobs_rows:
+        for job_id, creneau_id, staff_needed, start_hour, staff_assigned in jobs_rows:
             assigned = [int(s) for s in (staff_assigned or [])]
+            eligible_existing = [
+                user_id
+                for user_id in assigned
+                if user_id in user_shift_map
+                and is_staff_shift_compatible(user_shift_map.get(user_id), int(start_hour))
+            ]
             job_meta[int(job_id)] = {
                 "creneau": int(creneau_id) if creneau_id is not None else None,
                 "staff_needed": int(staff_needed) if staff_needed is not None else 1,
+                "start_hour": int(start_hour),
             }
-            merged_by_job[int(job_id)] = list(dict.fromkeys(assigned))
+            merged_by_job[int(job_id)] = list(dict.fromkeys(eligible_existing))
             if creneau_id is not None:
                 busy_by_creneau[int(creneau_id)].update(merged_by_job[int(job_id)])
 
         for aff in affectations:
             job_id = int(aff["id_job"])
+            user_id = aff.get("id_user")
             staff_id = int(aff["id_staffeur"])
 
             meta = job_meta.get(job_id)
             if not meta:
                 continue
+            if user_id is None:
+                continue
+            user_id = int(user_id)
+            if user_id not in user_shift_map:
+                continue
 
             existing = merged_by_job.setdefault(job_id, [])
-            if staff_id in existing:
+            if user_id in existing:
                 continue
             if len(existing) >= meta["staff_needed"]:
                 continue
-
-            creneau_id = meta["creneau"]
-            if creneau_id is not None and staff_id in busy_by_creneau[creneau_id]:
+            if not is_staff_shift_compatible(user_shift_map.get(user_id), meta["start_hour"]):
                 continue
 
-            existing.append(staff_id)
+            creneau_id = meta["creneau"]
+            if creneau_id is not None and user_id in busy_by_creneau[creneau_id]:
+                continue
+
+            existing.append(user_id)
             if creneau_id is not None:
-                busy_by_creneau[creneau_id].add(staff_id)
+                busy_by_creneau[creneau_id].add(user_id)
 
         cur.execute("DELETE FROM affectation_staff")
-        for job_id, staff_ids in merged_by_job.items():
-            for staff_id in staff_ids:
+        for job_id, user_ids in merged_by_job.items():
+            for user_id in user_ids:
+                staff_id = user_to_staff.get(int(user_id))
+                if staff_id is None:
+                    continue
                 cur.execute(
                     """
                     INSERT INTO affectation_staff (id_staffeur, id_job)
@@ -264,10 +325,10 @@ def write_affectations_staff(conn, affectations, preserve_existing=False):
                 )
 
         cur.execute("UPDATE jobs SET staff_assigned = '{}'::int[]")
-        for job_id, staff_ids in merged_by_job.items():
+        for job_id, user_ids in merged_by_job.items():
             cur.execute(
                 "UPDATE jobs SET staff_assigned = %s::int[] WHERE id = %s",
-                (staff_ids, job_id),
+                (user_ids, job_id),
             )
 
 
@@ -303,6 +364,7 @@ def run_creer_poules(conn, max_par_poule, write_db):
 
 
 def run_planning_staff(conn, write_db, preserve_existing_staff=False):
+    ensure_default_creneaux(conn)
     creneaux = fetch_creneaux(conn)
     staffeurs = fetch_staffeurs(conn)
     jobs = fetch_jobs(conn)

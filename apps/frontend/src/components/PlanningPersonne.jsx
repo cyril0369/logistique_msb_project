@@ -1,4 +1,4 @@
-export default function PlanningPersonne({ day, taches = [], heureDebut = 8, heureFin = 20 }) {
+export default function PlanningPersonne({ day, taches = [], heureDebut, heureFin }) {
 
   const heuresOccupees = {};
 
@@ -11,14 +11,27 @@ export default function PlanningPersonne({ day, taches = [], heureDebut = 8, heu
     }
   }
 
+  let startH = heureDebut;
+  let endH = heureFin;
+
+  if (taches.length > 0) {
+    const starts = taches.map((t) => parseInt(String(t.heure_debut).split(':')[0], 10));
+    const ends = taches.map((t) => parseInt(String(t.heure_fin).split(':')[0], 10));
+    if (startH === undefined) startH = Math.min(...starts);
+    if (endH === undefined) endH = Math.max(...ends);
+  } else {
+    if (startH === undefined) startH = 8;
+    if (endH === undefined) endH = 20;
+  }
+
   return (
     <div className="planning-personne">
       <div className="journee">
         <h2>{day}</h2>
 
         <div className="planning">
-          {Array.from({ length: heureFin - heureDebut }, (_, i) => {
-            const h = heureDebut + i;
+          {Array.from({ length: endH - startH }, (_, i) => {
+            const h = startH + i;
             const occupe = heuresOccupees[h];
 
             return (

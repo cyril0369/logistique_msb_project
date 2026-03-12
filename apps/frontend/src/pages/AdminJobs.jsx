@@ -32,7 +32,6 @@ export default function AdminJobs() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
-  const [slotForm, setSlotForm] = useState({ day_of_week: "vendredi", start_hour: 9, end_hour: 10, label: "" });
   const [jobForm, setJobForm] = useState({ creneau: "", staff_type: 1, staff_needed: 1, description: "" });
   const [filters, setFilters] = useState({ day: "", type: "" });
 
@@ -64,23 +63,7 @@ export default function AdminJobs() {
 
   const selectedJob = useMemo(() => allJobs.find((job) => job.id === selectedJobId) || null, [allJobs, selectedJobId]);
 
-  async function createSlot(event) {
-    event.preventDefault();
-    setErr("");
-    setOk("");
-    try {
-      await api.post("/api/creneaux", {
-        day_of_week: slotForm.day_of_week,
-        start_hour: Number(slotForm.start_hour),
-        end_hour: Number(slotForm.end_hour),
-        label: slotForm.label,
-      });
-      setOk("Créneau enregistré");
-      await loadData();
-    } catch (error) {
-      setErr(error?.response?.data || "Erreur création créneau");
-    }
-  }
+
 
   async function createJob(event) {
     event.preventDefault();
@@ -165,37 +148,12 @@ export default function AdminJobs() {
   }
 
   return (
-    <AdminLayout title="Planning Admin" subtitle="Définir les créneaux puis affecter le staff sur vendredi, samedi et dimanche">
+    <AdminLayout title="Planning Admin" subtitle="Affecter le staff sur les créneaux (vendredi, samedi et dimanche)">
       {ok ? <div className="admin-alert admin-alert-ok">{ok}</div> : null}
       {err ? <div className="admin-alert admin-alert-err">{err}</div> : null}
 
       <div className="admin-two-col">
         <div className="admin-grid">
-          <form className="admin-card admin-form-grid" onSubmit={createSlot}>
-            <h3>Gestion des Créneaux</h3>
-            <label>
-              Jour
-              <select value={slotForm.day_of_week} onChange={(e) => setSlotForm((p) => ({ ...p, day_of_week: e.target.value }))}>
-                <option value="vendredi">Vendredi</option>
-                <option value="samedi">Samedi</option>
-                <option value="dimanche">Dimanche</option>
-              </select>
-            </label>
-            <label>
-              Heure de début
-              <input type="number" min={0} max={23} value={slotForm.start_hour} onChange={(e) => setSlotForm((p) => ({ ...p, start_hour: e.target.value }))} />
-            </label>
-            <label>
-              Heure de fin
-              <input type="number" min={1} max={24} value={slotForm.end_hour} onChange={(e) => setSlotForm((p) => ({ ...p, end_hour: e.target.value }))} />
-            </label>
-            <label>
-              Libellé (optionnel)
-              <input value={slotForm.label} onChange={(e) => setSlotForm((p) => ({ ...p, label: e.target.value }))} />
-            </label>
-            <button className="admin-btn" type="submit">Créer / Mettre à jour le créneau</button>
-          </form>
-
           <form className="admin-card admin-form-grid" onSubmit={createJob}>
             <h3>Nouveau Job</h3>
             <label>

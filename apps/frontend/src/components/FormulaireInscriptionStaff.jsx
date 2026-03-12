@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
 
 export default function FormulaireInscriptionStaff() {
     const navigate = useNavigate();
@@ -16,6 +15,7 @@ export default function FormulaireInscriptionStaff() {
     });
 
     const [staffData, setStaffData] = useState({
+        staff_code: '',
         type_staff: '',
         staff_autres_assos: null,
         participation_pompims: null,
@@ -24,24 +24,18 @@ export default function FormulaireInscriptionStaff() {
         remarques_staff: ''
     });
 
-    const [competencesSelectionnees, setCompetencesSelectionnees] = useState([]);
-    const [disponibilitesSelectionnees, setDisponibilitesSelectionnees] = useState([]);
+    const [competenceFlags, setCompetenceFlags] = useState({
+        tireuse: false,
+        cuisine: false,
+        arbitre_beach_rugby: false,
+        arbitre_handball: false,
+        arbitre_beach_volley: false,
+        arbitre_beach_soccer: false,
+        premiers_secours: false,
+    });
 
-    const creneauxParTypeStaff = {
-        Mixte: [
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-            15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-            31, 32, 33, 34, 35, 36, 37, 38, 39
-        ],
-        Jour: [
-            1, 2, 3, 4, 5, 6, 7, 8,
-            15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-            31, 32, 33, 34, 35, 36, 37, 38, 39
-        ],
-        Nuit: [
-            9, 10, 11, 12, 13, 14,
-            25, 26, 27, 28, 29, 30
-        ]
+    const setFlag = (flagName, value) => {
+        setCompetenceFlags((prev) => ({ ...prev, [flagName]: value }));
     };
 
     useEffect(() => {
@@ -50,7 +44,7 @@ export default function FormulaireInscriptionStaff() {
             setInfoPersonnelles(JSON.parse(savedData));
         } else {
             alert('Veuillez d\'abord remplir le formulaire d\'inscription');
-            navigate('/acceuil/inscription');
+            navigate('/accueil/inscription');
         }
     }, [navigate]);
 
@@ -64,30 +58,21 @@ export default function FormulaireInscriptionStaff() {
                 telephone: infoPersonnelles.telephone || null,
                 genre: infoPersonnelles.genre || null,
                 statut: 'Staff',
+                staff_code: staffData.staff_code,
+                staff_type: staffData.type_staff.toLowerCase(),
+                tireuse: competenceFlags.tireuse ? 1 : 0,
+                cuisine: competenceFlags.cuisine ? 1 : 0,
+                arbitre_beach_rugby: competenceFlags.arbitre_beach_rugby ? 1 : 0,
+                arbitre_handball: competenceFlags.arbitre_handball ? 1 : 0,
+                arbitre_beach_volley: competenceFlags.arbitre_beach_volley ? 1 : 0,
+                arbitre_beach_soccer: competenceFlags.arbitre_beach_soccer ? 1 : 0,
                 taille_tshirt: formData.taille_tshirt,
                 regime_alimentaire: formData.regime_alimentaire,
                 remarques: formData.remarques,
                 id_ecole: parseInt(formData.id_ecole) || null
             };
 
-            // 1. Créer le compte personne
-            const userData = await signup(completeData);
-            const id_personne = userData?.user?.id;
-
-            // 2. Créer le profil staffeur avec compétences et disponibilités
-            if (id_personne) {
-                await api.post('/staffeur', {
-                    id_personne,
-                    type_staff: staffData.type_staff,
-                    staff_autres_assos: staffData.staff_autres_assos,
-                    participation_pompims: staffData.participation_pompims,
-                    preference_heures_max: staffData.preference_heures_max || null,
-                    contrainte_heures_consecutives_max: staffData.contrainte_heures_consecutives_max || null,
-                    remarques_staff: staffData.remarques_staff || null,
-                    competences: competencesSelectionnees,
-                    disponibilites: disponibilitesSelectionnees
-                });
-            }
+            await signup(completeData);
 
             localStorage.removeItem('inscriptionData');
             alert('Inscription réussie !');
@@ -102,7 +87,7 @@ export default function FormulaireInscriptionStaff() {
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        if (!formData.taille_tshirt || !formData.regime_alimentaire || !formData.id_ecole) {
+        if (!staffData.staff_code || !staffData.type_staff || !formData.taille_tshirt || !formData.regime_alimentaire || !formData.id_ecole) {
             alert('Veuillez remplir tous les champs obligatoires');
             return;
         }
@@ -119,6 +104,18 @@ export default function FormulaireInscriptionStaff() {
 
             <div className="titre-sous-titre block">
                 <h1>Inscription<br />Staff</h1>
+            </div>
+
+            <div className="champ-de-saisie block">
+                <h4>Code staff</h4>
+                <p className="corps-2">Code staff *</p>
+                <input
+                    type="text"
+                    className='input-text'
+                    value={staffData.staff_code}
+                    onChange={(e) => setStaffData({...staffData, staff_code: e.target.value})}
+                    required
+                />
             </div>
 
             <div className="champ-de-saisie block">
@@ -234,11 +231,7 @@ export default function FormulaireInscriptionStaff() {
                                 name="type_staff"
                                 value={type}
                                 checked={staffData.type_staff === type}
-                                onChange={(e) => {
-                                    const selectedType = e.target.value;
-                                    setStaffData({...staffData, type_staff: selectedType});
-                                    setDisponibilitesSelectionnees(creneauxParTypeStaff[selectedType] || []);
-                                }}
+                                onChange={(e) => setStaffData({...staffData, type_staff: e.target.value})}
                                 className='cases'
                             />
                             <p className="corps-2">{type}</p>
@@ -299,7 +292,8 @@ export default function FormulaireInscriptionStaff() {
                             type="radio" 
                             name="tireuse"
                             value="oui"
-                            onChange={() => setCompetencesSelectionnees(prev => [...new Set([...prev, 1, 2, 3])])}
+                            checked={competenceFlags.tireuse === true}
+                            onChange={() => setFlag('tireuse', true)}
                             className='cases'
                         />
                         <p className="corps-2">OUI</p>
@@ -309,7 +303,8 @@ export default function FormulaireInscriptionStaff() {
                             type="radio" 
                             name="tireuse"
                             value="non"
-                            onChange={() => setCompetencesSelectionnees(prev => prev.filter(c => ![1, 2, 3].includes(c)))}
+                            checked={competenceFlags.tireuse === false}
+                            onChange={() => setFlag('tireuse', false)}
                             className='cases'
                         />
                         <p className="corps-2">NON</p>
@@ -321,8 +316,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="cuisine"
-                            value="non"
-                            onChange={() => setCompetencesSelectionnees(prev => [...new Set([...prev, 4, 5, 6, 7])])}
+                            value="oui"
+                            checked={competenceFlags.cuisine === true}
+                            onChange={() => setFlag('cuisine', true)}
                             className='cases'
                         />
                         <p className="corps-2">OUI</p>
@@ -331,8 +327,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="cuisine"
-                            value="oui"
-                            onChange={() => setCompetencesSelectionnees(prev => prev.filter(c => ![4, 5, 6, 7].includes(c)))}
+                            value="non"
+                            checked={competenceFlags.cuisine === false}
+                            onChange={() => setFlag('cuisine', false)}
                             className='cases'
                         />
                         <p className="corps-2">NON</p>
@@ -344,8 +341,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer1"
-                            value="non"
-                            onChange={() => setCompetencesSelectionnees(prev => [...new Set([...prev, 11])])}
+                            value="oui"
+                            checked={competenceFlags.arbitre_beach_rugby === true}
+                            onChange={() => setFlag('arbitre_beach_rugby', true)}
                             className='cases'
                         />
                         <p className="corps-2">OUI</p>
@@ -354,8 +352,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer1"
-                            value="oui"
-                            onChange={() => setCompetencesSelectionnees(prev => prev.filter(c => ![11].includes(c)))}
+                            value="non"
+                            checked={competenceFlags.arbitre_beach_rugby === false}
+                            onChange={() => setFlag('arbitre_beach_rugby', false)}
                             className='cases'
                         />
                         <p className="corps-2">NON</p>
@@ -367,8 +366,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer2"
-                            value="non"
-                            onChange={() => setCompetencesSelectionnees(prev => [...new Set([...prev, 11])])}
+                            value="oui"
+                            checked={competenceFlags.arbitre_handball === true}
+                            onChange={() => setFlag('arbitre_handball', true)}
                             className='cases'
                         />
                         <p className="corps-2">OUI</p>
@@ -377,8 +377,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer2"
-                            value="oui"
-                            onChange={() => setCompetencesSelectionnees(prev => prev.filter(c => ![11].includes(c)))}
+                            value="non"
+                            checked={competenceFlags.arbitre_handball === false}
+                            onChange={() => setFlag('arbitre_handball', false)}
                             className='cases'
                         />
                         <p className="corps-2">NON</p>
@@ -390,8 +391,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer3"
-                            value="non"
-                            onChange={() => setCompetencesSelectionnees(prev => [...new Set([...prev, 8])])}
+                            value="oui"
+                            checked={competenceFlags.arbitre_beach_volley === true}
+                            onChange={() => setFlag('arbitre_beach_volley', true)}
                             className='cases'
                         />
                         <p className="corps-2">OUI</p>
@@ -400,8 +402,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer3"
-                            value="oui"
-                            onChange={() => setCompetencesSelectionnees(prev => prev.filter(c => ![8].includes(c)))}
+                            value="non"
+                            checked={competenceFlags.arbitre_beach_volley === false}
+                            onChange={() => setFlag('arbitre_beach_volley', false)}
                             className='cases'
                         />
                         <p className="corps-2">NON</p>
@@ -413,8 +416,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer4"
-                            value="non"
-                            onChange={() => setCompetencesSelectionnees(prev => [...new Set([...prev, 9])])}
+                            value="oui"
+                            checked={competenceFlags.arbitre_beach_soccer === true}
+                            onChange={() => setFlag('arbitre_beach_soccer', true)}
                             className='cases'
                         />
                         <p className="corps-2">OUI</p>
@@ -423,8 +427,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer4"
-                            value="oui"
-                            onChange={() => setCompetencesSelectionnees(prev => prev.filter(c => ![9].includes(c)))}
+                            value="non"
+                            checked={competenceFlags.arbitre_beach_soccer === false}
+                            onChange={() => setFlag('arbitre_beach_soccer', false)}
                             className='cases'
                         />
                         <p className="corps-2">NON</p>
@@ -449,8 +454,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer5"
-                            value="non"
-                            onChange={() => setCompetencesSelectionnees(prev => [...new Set([...prev, 15,16,17])])}
+                            value="oui"
+                            checked={competenceFlags.premiers_secours === true}
+                            onChange={() => setFlag('premiers_secours', true)}
                             className='cases'
                         />
                         <p className="corps-2">OUI</p>
@@ -459,8 +465,9 @@ export default function FormulaireInscriptionStaff() {
                         <input 
                             type="radio" 
                             name="arbitrer5"
-                            value="oui"
-                            onChange={() => setCompetencesSelectionnees(prev => prev.filter(c => ![15,16,17].includes(c)))}
+                            value="non"
+                            checked={competenceFlags.premiers_secours === false}
+                            onChange={() => setFlag('premiers_secours', false)}
                             className='cases'
                         />
                         <p className="corps-2">NON</p>

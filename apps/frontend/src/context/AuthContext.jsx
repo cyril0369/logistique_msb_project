@@ -83,9 +83,9 @@ export function AuthProvider({ children }) {
       const payload = buildSignupPayload(userData);
       const status = userData.statut;
 
-      if (status === 'TeamMSB' && payload.admin_code) {
+      if (status === 'TeamMSB') {
         await api.post('/signup_admin', payload);
-      } else if (status === 'Staff' && payload.staff_code) {
+      } else if (status === 'Staff') {
         await api.post('/signup_staff', payload);
       } else {
         await api.post('/signup', payload);

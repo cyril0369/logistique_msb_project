@@ -7,6 +7,8 @@
     "start": "node server.js",
     "build:frontend": "npm --prefix ../frontend run build",
     "start:all": "npm run build:frontend && npm run start",
+    "seed-demo-data": "node seed-demo-data.js",
+    "see-demo-data": "npm run seed-demo-data",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

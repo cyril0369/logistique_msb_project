@@ -36,10 +36,10 @@ async function requireAdmin(req, res, next) {
 }
 
 async function requireStaff(req, res, next) {
-  const result = await pool.query("SELECT 1 FROM staff WHERE user_id=$1 LIMIT 1", [
+  const result = await pool.query("SELECT is_staff FROM users WHERE id=$1", [
     req.session.userId,
   ]);
-  if (result.rows.length === 0) return res.status(403).json({ error: "Staff access required" });
+  if (!result.rows.length || !result.rows[0].is_staff) return res.status(403).json({ error: "Staff access required" });
   next();
 
 }
@@ -202,26 +202,35 @@ async function sendStaffEmail({ to, subject, text }) {
 
 const ALLOWED_DAYS = ["vendredi", "samedi", "dimanche"];
 
-const STAFF_TYPE_MAP = {
-  1: "bar",
-  2: "cuisine",
-  3: "arbitre_beach_rugby",
-  4: "arbitre_beach_soccer",
-  5: "arbitre_beach_volley",
-  6: "arbitre_dodgeball",
-  7: "arbitre_handball",
-};
+const STAFF_COMPETENCE_IDS = new Set([1, 2, 3, 4, 5, 6, 7]);
+const STAFF_SIGNUP_COMPETENCE_FIELDS = [
+  ["tireuse", 1],
+  ["cuisine", 2],
+  ["arbitre_beach_rugby", 3],
+  ["arbitre_beach_soccer", 4],
+  ["arbitre_beach_volley", 5],
+  ["arbitre_dodgeball", 6],
+  ["arbitre_handball", 7],
+];
 
-function parseStaffSignupAnswers(body = {}, options = {}) {
-  const {
-    validatedStaffCode = false,
-    username = null,
-    email = null,
-    firstName = null,
-    lastName = null,
-    phone = null,
-  } = options;
+function normalizeStaffShiftType(value) {
+  const normalized = String(value || "mixte").trim().toLowerCase();
+  return ["jour", "nuit", "mixte"].includes(normalized) ? normalized : "mixte";
+}
 
+function isNightHour(startHour) {
+  return Number.isInteger(startHour) && (startHour >= 18 || startHour < 8);
+}
+
+function isStaffShiftCompatible(staffType, startHour) {
+  const shift = normalizeStaffShiftType(staffType);
+  const night = isNightHour(startHour);
+  if (shift === "jour") return !night;
+  if (shift === "nuit") return night;
+  return true;
+}
+
+function parseStaffSignupAnswers(body = {}) {
   const staffTypeRaw = body.staff_type || null;
   const normalizedStaffType =
     staffTypeRaw && ["jour", "nuit", "mixte"].includes(String(staffTypeRaw).toLowerCase())
@@ -231,63 +240,38 @@ function parseStaffSignupAnswers(body = {}, options = {}) {
   const toInt = (value) =>
     value === true || value === "true" || value === "on" || value === 1 || value === "1" ? 1 : 0;
 
+  const competenceIds = STAFF_SIGNUP_COMPETENCE_FIELDS
+    .filter(([fieldName]) => toInt(body[fieldName]) === 1)
+    .map(([, competenceId]) => competenceId);
+
   return {
     staffType: normalizedStaffType,
-    staff_code_validated: validatedStaffCode ? 1 : 0,
-    username_snapshot: username,
-    email_snapshot: email,
-    first_name_snapshot: firstName,
-    last_name_snapshot: lastName,
-    phone_snapshot: phone,
-    bar: toInt(body.tireuse),
-    cuisine: toInt(body.cuisine),
-    arbitre_beach_rugby: toInt(body.arbitre_beach_rugby),
-    arbitre_beach_soccer: toInt(body.arbitre_beach_soccer),
-    arbitre_beach_volley: toInt(body.arbitre_beach_volley),
-    arbitre_dodgeball: toInt(body.arbitre_dodgeball),
-    arbitre_handball: toInt(body.arbitre_handball),
+    competenceIds,
   };
 }
 
 async function upsertStaffAnswers(dbClient, userId, answers) {
-  await dbClient.query(
-    `INSERT INTO staff (user_id, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer, arbitre_beach_volley, arbitre_dodgeball, arbitre_handball, staff_type, staff_code_validated, username_snapshot, email_snapshot, first_name_snapshot, last_name_snapshot, phone_snapshot)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-     ON CONFLICT (user_id) DO UPDATE SET 
-       bar = EXCLUDED.bar,
-       cuisine = EXCLUDED.cuisine,
-       arbitre_beach_rugby = EXCLUDED.arbitre_beach_rugby,
-       arbitre_beach_soccer = EXCLUDED.arbitre_beach_soccer,
-       arbitre_beach_volley = EXCLUDED.arbitre_beach_volley,
-       arbitre_dodgeball = EXCLUDED.arbitre_dodgeball,
-       arbitre_handball = EXCLUDED.arbitre_handball,
+  const result = await dbClient.query(
+    `INSERT INTO staff (user_id, staff_type)
+     VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET
        staff_type = EXCLUDED.staff_type,
-       staff_code_validated = EXCLUDED.staff_code_validated,
-       username_snapshot = EXCLUDED.username_snapshot,
-       email_snapshot = EXCLUDED.email_snapshot,
-       first_name_snapshot = EXCLUDED.first_name_snapshot,
-       last_name_snapshot = EXCLUDED.last_name_snapshot,
-       phone_snapshot = EXCLUDED.phone_snapshot,
        updated_at = CURRENT_TIMESTAMP
-    `,
-    [
-      userId,
-      answers.bar,
-      answers.cuisine,
-      answers.arbitre_beach_rugby,
-      answers.arbitre_beach_soccer,
-      answers.arbitre_beach_volley,
-      answers.arbitre_dodgeball,
-      answers.arbitre_handball,
-      answers.staffType,
-      answers.staff_code_validated,
-      answers.username_snapshot,
-      answers.email_snapshot,
-      answers.first_name_snapshot,
-      answers.last_name_snapshot,
-      answers.phone_snapshot,
-    ]
+     RETURNING id`,
+    [userId, answers.staffType]
   );
+
+  const staffId = result.rows[0].id;
+  await dbClient.query("DELETE FROM staffeur_competence WHERE id_staffeur = $1", [staffId]);
+
+  for (const competenceId of answers.competenceIds) {
+    await dbClient.query(
+      `INSERT INTO staffeur_competence (id_staffeur, id_competence)
+       VALUES ($1, $2)
+       ON CONFLICT (id_staffeur, id_competence) DO NOTHING`,
+      [staffId, competenceId]
+    );
+  }
 }
 
 async function ensureSchedulingSchema() {
@@ -347,7 +331,7 @@ app.get("/api/me", requireAuth, async (req, res, next) => {
          u.last_name,
          u.email,
          u.is_admin,
-         EXISTS(SELECT 1 FROM staff s WHERE s.user_id = u.id) AS is_staff
+         u.is_staff
        FROM users u
        WHERE u.id = $1`,
       [req.session.userId]
@@ -457,19 +441,12 @@ app.post("/signup_staff", async (req, res, next) => {
     const hashed = await bcrypt.hash(password, 10);
     const result = await client.query(
       `INSERT INTO users (username, password_hash, first_name, last_name, email, phone, is_staff)
-        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [username.trim(), hashed, first_name.trim(), last_name.trim(), email.trim(), phone?.trim(), 1]
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [username.trim(), hashed, first_name.trim(), last_name.trim(), email.trim(), phone?.trim(), true]
     );
     
     const userId = result.rows[0].id;
-    const staffAnswers = parseStaffSignupAnswers(req.body, {
-      validatedStaffCode: true,
-      username: username.trim(),
-      email: email.trim(),
-      firstName: first_name.trim(),
-      lastName: last_name.trim(),
-      phone: phone?.trim() || null,
-    });
+    const staffAnswers = parseStaffSignupAnswers(req.body);
     await upsertStaffAnswers(client, userId, staffAnswers);
     await client.query("COMMIT");
 
@@ -519,14 +496,7 @@ app.post("/forgot-password", async (req, res, next) => {
     
 
     try {
-      const staffAnswers = parseStaffSignupAnswers(req.body, {
-        validatedStaffCode: false,
-        username: null,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: null,
-        phone: null,
-      });
+      const staffAnswers = parseStaffSignupAnswers(req.body);
       await upsertStaffAnswers(pool, user.id, staffAnswers);
     } catch (staffErr) {
       console.error("Staff extra fields insertion failed:", staffErr?.message);
@@ -564,7 +534,7 @@ app.post("/login", noCache, async (req, res, next) => {
     const { email, password } = req.body;
 
     const result = await pool.query(
-      "SELECT id, username, email, password_hash, is_admin FROM users WHERE email=$1",
+      "SELECT id, username, email, password_hash, is_admin, is_staff FROM users WHERE email=$1",
       [email.trim()]
     );
     if (!result.rows.length) return res.status(400).json({ error: "Utilisateur introuvable" });
@@ -579,25 +549,21 @@ app.post("/login", noCache, async (req, res, next) => {
       req.session.userId = user.id;
       req.session.username = user.username;
       req.session.is_admin = !!user.is_admin;
-      pool.query("SELECT 1 FROM staff WHERE user_id=$1 LIMIT 1", [user.id])
-        .then((staffRes) => {
-          req.session.is_staff = staffRes.rows.length > 0;
+      req.session.is_staff = !!user.is_staff;
 
-          req.session.save((err2) => {
-            if (err2) return next(err2);
-            res.json({ 
-              message: "Connexion réussie !",
-              user: { 
-                id: user.id, 
-                username: user.username, 
-                email: user.email,
-                is_admin: !!user.is_admin,
-                is_staff: staffRes.rows.length > 0
-              }
-            });
-          });
-        })
-        .catch((e2) => next(e2));
+      req.session.save((err2) => {
+        if (err2) return next(err2);
+        res.json({ 
+          message: "Connexion réussie !",
+          user: { 
+            id: user.id, 
+            username: user.username, 
+            email: user.email,
+            is_admin: !!user.is_admin,
+            is_staff: !!user.is_staff
+          }
+        });
+      });
     });
   } catch (e) {
     next(e);
@@ -920,40 +886,7 @@ app.get("/api/creneaux", requireAuth, async (req, res, next) => {
   }
 });
 
-app.post("/api/creneaux", requireAuth, requireAdmin, async (req, res, next) => {
-  try {
-    const day = String(req.body.day_of_week || "").trim().toLowerCase();
-    const startHour = Number.parseInt(req.body.start_hour, 10);
-    const endHour = Number.parseInt(req.body.end_hour, 10);
-
-    if (!ALLOWED_DAYS.includes(day)) {
-      return res.status(400).send("Jour invalide (vendredi, samedi, dimanche)");
-    }
-    if (!Number.isInteger(startHour) || !Number.isInteger(endHour)) {
-      return res.status(400).send("Heures invalides");
-    }
-    if (startHour < 0 || startHour > 23 || endHour < 1 || endHour > 24 || endHour <= startHour) {
-      return res.status(400).send("La tranche horaire est invalide");
-    }
-
-    const label = req.body.label
-      ? String(req.body.label).trim()
-      : `${day} ${String(startHour).padStart(2, "0")}:00-${String(endHour).padStart(2, "0")}:00`;
-
-    const result = await pool.query(
-      `INSERT INTO creneaux (day_of_week, start_hour, end_hour, label)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (day_of_week, start_hour, end_hour)
-       DO UPDATE SET label = EXCLUDED.label
-       RETURNING id, day_of_week, start_hour, end_hour, label`,
-      [day, startHour, endHour, label]
-    );
-
-    res.status(201).json(result.rows[0]);
-  } catch (e) {
-    next(e);
-  }
-});
+// Slot creation is disabled - slots are fixed and managed via seeding only
 
 app.get("/api/jobs", requireAuth, requireAdmin, async (req, res, next) => {
   try {
@@ -1015,7 +948,7 @@ app.post("/api/jobs", requireAuth, requireAdmin, async (req, res, next) => {
     if (staffNeeded < 1) {
       return res.status(400).send("staff_needed doit être supérieur ou égal à 1");
     }
-    if (!STAFF_TYPE_MAP[staffType]) {
+    if (!STAFF_COMPETENCE_IDS.has(staffType)) {
       return res.status(400).send("staff_type invalide");
     }
 
@@ -1038,16 +971,25 @@ app.post("/api/jobs", requireAuth, requireAdmin, async (req, res, next) => {
 
 app.get("/api/jobs/available-staff", requireAuth, requireAdmin, async (req, res, next) => {
   try {
-    const { creneau, staff_type } = req.query;
+    const creneau = Number.parseInt(req.query.creneau, 10);
+    const staffType = Number.parseInt(req.query.staff_type, 10);
     
-    if (!creneau || !staff_type) {
+    if (!Number.isInteger(creneau) || !Number.isInteger(staffType)) {
       return res.status(400).send("creneau et staff_type requis");
     }
 
-    const columnName = STAFF_TYPE_MAP[Number.parseInt(staff_type, 10)];
-    if (!columnName) {
+    if (!STAFF_COMPETENCE_IDS.has(staffType)) {
       return res.status(400).send("staff_type invalide");
     }
+
+    const { rows: creneauRows } = await pool.query(
+      "SELECT start_hour FROM creneaux WHERE id = $1",
+      [creneau]
+    );
+    if (!creneauRows.length) {
+      return res.status(404).send("Créneau introuvable");
+    }
+    const slotStartHour = Number.parseInt(creneauRows[0].start_hour, 10);
 
     const { rows: busyStaff } = await pool.query(
       `SELECT UNNEST(staff_assigned) as user_id FROM jobs WHERE creneau = $1`,
@@ -1056,22 +998,24 @@ app.get("/api/jobs/available-staff", requireAuth, requireAdmin, async (req, res,
     const busyIds = busyStaff.map(r => r.user_id);
 
     let query = `
-      SELECT u.id, u.username, u.first_name, u.last_name, u.email, s.${columnName}
+      SELECT DISTINCT u.id, u.username, u.first_name, u.last_name, u.email, COALESCE(s.staff_type, 'mixte') AS staff_type
       FROM users u
       JOIN staff s ON s.user_id = u.id
-      WHERE s.${columnName} = 1
+      JOIN staffeur_competence sc ON sc.id_staffeur = s.id
+      WHERE sc.id_competence = $1 AND COALESCE(u.is_admin, 0) = 0 AND COALESCE(u.is_staff, 0) = 1
     `;
     
-    const params = [];
+    const params = [staffType];
     if (busyIds.length > 0) {
-      query += ` AND u.id NOT IN (${busyIds.map((_, i) => `$${i + 1}`).join(',')})`;
+      query += ` AND u.id NOT IN (${busyIds.map((_, i) => `$${i + 2}`).join(',')})`;
       params.push(...busyIds);
     }
     
     query += ` ORDER BY u.last_name, u.first_name`;
     
     const { rows } = await pool.query(query, params);
-    res.json(rows);
+    const compatibleRows = rows.filter((row) => isStaffShiftCompatible(row.staff_type, slotStartHour));
+    res.json(compatibleRows);
   } catch (e) {
     next(e);
   }
@@ -1086,14 +1030,35 @@ app.put("/api/jobs/:id/assign", requireAuth, requireAdmin, async (req, res, next
       return res.status(400).send("staff_ids doit être un tableau");
     }
 
-    const jobResult = await pool.query("SELECT creneau, staff_needed FROM jobs WHERE id = $1", [jobId]);
+    const uniqueStaffIds = [...new Set(staff_ids.map((id) => Number.parseInt(id, 10)).filter((id) => Number.isInteger(id) && id > 0))];
+    if (uniqueStaffIds.length !== staff_ids.length) {
+      return res.status(400).send("staff_ids contient des valeurs invalides ou en doublon");
+    }
+
+    const jobResult = await pool.query(
+      `SELECT j.creneau, j.staff_needed, j.staff_type, j.staff_assigned, c.start_hour
+       FROM jobs j
+       JOIN creneaux c ON c.id = j.creneau
+       WHERE j.id = $1`,
+      [jobId]
+    );
     if (jobResult.rows.length === 0) {
       return res.status(404).send("Job introuvable");
     }
     
     const job = jobResult.rows[0];
+
+    if (uniqueStaffIds.length > Number(job.staff_needed)) {
+      return res.status(400).send("Trop de staff assignés pour ce job");
+    }
     
-    if (staff_ids.length > 0) {
+    const existingStaffIds = Array.isArray(job.staff_assigned)
+      ? job.staff_assigned.map((id) => Number.parseInt(id, 10)).filter((id) => Number.isInteger(id) && id > 0)
+      : [];
+    const existingStaffSet = new Set(existingStaffIds);
+    const addedStaffIds = uniqueStaffIds.filter((id) => !existingStaffSet.has(id));
+
+    if (addedStaffIds.length > 0) {
       const { rows: conflicts } = await pool.query(
         `SELECT UNNEST(staff_assigned) as user_id 
          FROM jobs 
@@ -1102,17 +1067,60 @@ app.put("/api/jobs/:id/assign", requireAuth, requireAdmin, async (req, res, next
       );
       
       const busyIds = conflicts.map(r => r.user_id);
-      const conflictIds = staff_ids.filter(id => busyIds.includes(id));
+      const conflictIds = addedStaffIds.filter(id => busyIds.includes(id));
       
       if (conflictIds.length > 0) {
         return res.status(400).send(`Staff ${conflictIds.join(', ')} déjà assignés sur ce créneau`);
+      }
+
+      const requiredCompetenceId = Number.parseInt(job.staff_type, 10);
+      if (!STAFF_COMPETENCE_IDS.has(requiredCompetenceId)) {
+        return res.status(400).send("Compétence requise invalide sur ce job");
+      }
+
+      const { rows: selectedStaff } = await pool.query(
+        `SELECT u.id,
+                EXISTS(
+                  SELECT 1
+                  FROM staffeur_competence sc
+                  WHERE sc.id_staffeur = s.id AND sc.id_competence = $2
+                ) AS has_competence,
+                COALESCE(s.staff_type, 'mixte') AS staff_type
+         FROM users u
+         JOIN staff s ON s.user_id = u.id
+         WHERE u.id = ANY($1::int[]) AND COALESCE(u.is_admin, 0) = 0 AND COALESCE(u.is_staff, 0) = 1`,
+        [addedStaffIds, requiredCompetenceId]
+      );
+
+      const selectedMap = new Map(selectedStaff.map((row) => [Number(row.id), row]));
+      const invalidByRule = [];
+
+      for (const staffId of addedStaffIds) {
+        const row = selectedMap.get(staffId);
+        if (!row) {
+          invalidByRule.push(staffId);
+          continue;
+        }
+
+        if (!row.has_competence) {
+          invalidByRule.push(staffId);
+          continue;
+        }
+
+        if (!isStaffShiftCompatible(row.staff_type, Number.parseInt(job.start_hour, 10))) {
+          invalidByRule.push(staffId);
+        }
+      }
+
+      if (invalidByRule.length > 0) {
+        return res.status(400).send(`Staff non éligibles pour ce job: ${invalidByRule.join(', ')}`);
       }
     }
 
     const result = await pool.query(
       `UPDATE jobs SET staff_assigned = $1, updated_at = CURRENT_TIMESTAMP
        WHERE id = $2 RETURNING *`,
-      [staff_ids, jobId]
+      [uniqueStaffIds, jobId]
     );
     
     res.json(result.rows[0]);
@@ -1138,7 +1146,21 @@ app.get("/api/my-schedule", requireAuth, async (req, res, next) => {
   try {
     const userId = req.session.userId;
 
-    if (req.session.is_admin) {
+    const { rows: actorRows } = await pool.query(
+      `SELECT u.is_admin, s.id AS staff_id
+       FROM users u
+       LEFT JOIN staff s ON s.user_id = u.id
+       WHERE u.id = $1`,
+      [userId]
+    );
+
+    if (!actorRows.length) {
+      return res.status(404).json({ error: "Utilisateur introuvable" });
+    }
+
+    const actor = actorRows[0];
+
+    if (actor.is_admin) {
       const { rows } = await pool.query(
         `SELECT
            j.id,
@@ -1166,7 +1188,7 @@ app.get("/api/my-schedule", requireAuth, async (req, res, next) => {
       return res.json(rows);
     }
 
-    if (!req.session.is_staff) {
+    if (!actor.staff_id) {
       return res.status(403).json({ error: "Staff access required" });
     }
 

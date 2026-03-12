@@ -29,13 +29,25 @@ function DashboardHome() {
   return <Accueil />;
 }
 
+function HomeRedirect() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <div>Chargement...</div>;
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Navigate to="/accueil" replace />;
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <div className="App">
           <Routes>
-            <Route path="/" element={<Navigate to="/accueil" replace />} />
+            <Route path="/" element={<HomeRedirect />} />
             <Route path="/login" element={<Navigate to="/accueil/connexion" replace />} />
             <Route path="/signup" element={<Navigate to="/accueil/inscription" replace />} />
             <Route path="/signup_staff" element={<Navigate to="/accueil/inscription/staff" replace />} />

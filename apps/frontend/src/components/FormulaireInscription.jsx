@@ -4,6 +4,12 @@ import { useState } from 'react';
 export default function FormulaireInscription() {
     const navigate = useNavigate();
 
+    const statutToRoute = {
+        TeamMSB: 'teammsb',
+        Staff: 'staff',
+        Participant: 'participant',
+    };
+
     const [formData, setFormData] = useState({
         nom: '',
         prenom: '',
@@ -152,7 +158,7 @@ export default function FormulaireInscription() {
                         }
                         // Sauvegarder dans localStorage pour passer au formulaire suivant
                         localStorage.setItem('inscriptionData', JSON.stringify(formData));
-                        navigate(`/accueil/inscription/${formData.statut}`);
+                        navigate(`/accueil/inscription/${statutToRoute[formData.statut]}`);
                     }}
                 >
                     <h4>Suivant</h4>

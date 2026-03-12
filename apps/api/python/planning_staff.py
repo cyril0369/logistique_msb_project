@@ -2,6 +2,28 @@
 from collections import defaultdict
 
 
+def _get_staff_id(staff):
+    """Support both legacy id_staffeur and current staff.id payloads."""
+    return staff.get("id_staff") or staff.get("id_staffeur")
+
+
+def _get_user_id(staff):
+    """Return the users.id associated with the staff row when available."""
+    return staff.get("user_id") or staff.get("id_user")
+
+
+def _normalize_staff_type(value):
+    if value is None:
+        return "mixte"
+    return str(value).strip().lower()
+
+
+def _is_night_slot(heure_debut):
+    """Night is 18:00-24:00 and 00:00-08:00."""
+    hour = int(str(heure_debut).split(":", 1)[0])
+    return hour >= 18 or hour < 8
+
+
 # fonction principale => input : les staffeurs, les jobs et les creneaux
 # output : qui fait quoi et quand
 def generer_planning(staffeurs, jobs, creneaux):
@@ -12,7 +34,8 @@ def generer_planning(staffeurs, jobs, creneaux):
     heures_par_staff = defaultdict(int)           # combien d'heures il a déjà
     creneaux_par_staff = defaultdict(list)        # sur quels créneaux il est déjà
     jobs_par_staff_et_creneau = defaultdict(set)  # pour vérifier max 1 job/créneau
-
+    creneau_par_id = {c["id_creneau"]: c for c in creneaux}
+ 
     # on garde l'ordre des créneaux pour calculer les heures consécutives
     ordre_creneaux = [c["id_creneau"] for c in creneaux]
 
@@ -26,10 +49,22 @@ def generer_planning(staffeurs, jobs, creneaux):
         candidats = []
 
         for staff in staffeurs:
-            id_staff = staff["id_staffeur"]
+            id_staff = _get_staff_id(staff)
+            if id_staff is None:
+                continue
 
             # 1. Pour voir si le staffeur est dispo sur ce créneau
             if id_creneau_job not in staff["dispos"]:
+                continue
+
+            # 1'. vérifier que le créneau est compatible avec le type du staffeur
+            heure_creneau = creneau_par_id[id_creneau_job]["heure_debut"]
+            type_staff = _normalize_staff_type(staff.get("type_staff"))
+            is_night = _is_night_slot(heure_creneau)
+
+            if type_staff == "jour" and is_night:
+                continue
+            if type_staff == "nuit" and not is_night:
                 continue
 
             # 2. il a la compétence requise ?
@@ -58,17 +93,20 @@ def generer_planning(staffeurs, jobs, creneaux):
             candidats.append(staff)
 
         # on prend en priorité ceux qui ont le moins d'heures pour équilibrer
-        candidats.sort(key=lambda s: heures_par_staff[s["id_staffeur"]])
+        candidats.sort(key=lambda s: heures_par_staff[_get_staff_id(s)])
 
         # on affecte jusqu'à nb_max staffeurs
         nb_a_affecter = min(nb_max, len(candidats))
 
         for i in range(nb_a_affecter):
             staff = candidats[i]
-            id_staff = staff["id_staffeur"]
+            id_staff = _get_staff_id(staff)
+            user_id = _get_user_id(staff)
 
             affectations.append({
+                "id_staff": id_staff,
                 "id_staffeur": id_staff,
+                "id_user": user_id,
                 "id_job": job["id_job"]
             })
 
@@ -113,7 +151,10 @@ def _calculer_stats(affectations, jobs, staffeurs):
 
     heures_par_staff = defaultdict(int)
     for aff in affectations:
-        heures_par_staff[aff["id_staffeur"]] += 1
+        staff_id = aff.get("id_staff") or aff.get("id_staffeur")
+        if staff_id is None:
+            continue
+        heures_par_staff[staff_id] += 1
 
     moyenne = round(sum(heures_par_staff.values()) / len(staffeurs), 1) if staffeurs else 0
 
@@ -228,6 +269,7 @@ if __name__ == "__main__":
         {"id_creneau": 4, "jour": "Samedi",    "heure_debut": "09:00", "heure_fin": "10:00"},
         {"id_creneau": 5, "jour": "Samedi",    "heure_debut": "10:00", "heure_fin": "11:00"},
         {"id_creneau": 6, "jour": "Dimanche",  "heure_debut": "14:00", "heure_fin": "15:00"},
+        
     ]
 
     staffeurs = [
@@ -236,6 +278,7 @@ if __name__ == "__main__":
             "preference_heures_max": 4,
             "contrainte_heures_consecutives_max": 3,
             "dispos": [1, 2, 3, 4],
+            "type_staff": "Jour",
             "competences": [10, 11]
         },
         {
@@ -243,6 +286,7 @@ if __name__ == "__main__":
             "preference_heures_max": 6,
             "contrainte_heures_consecutives_max": 4,
             "dispos": [2, 3, 4, 5],
+            "type_staff": "Nuit",
             "competences": [10, 12]
         },
         {
@@ -250,12 +294,14 @@ if __name__ == "__main__":
             "preference_heures_max": 4,
             "contrainte_heures_consecutives_max": 2,
             "dispos": [1, 2, 5, 6],
+            "type_staff": "Jour", 
             "competences": [12]
         },
         {
             "id_staffeur": 4,
             "preference_heures_max": 8,
             "contrainte_heures_consecutives_max": 4,
+            "type_staff": "Jour",
             "dispos": [3, 4, 5, 6],
             "competences": [11, 12]
         },
@@ -302,8 +348,8 @@ if __name__ == "__main__":
             nom_job = noms_jobs.get(affs[0]["id_job"], f"Job {affs[0]['id_job']}")
             print(f"    {heure} | {nom_job} -> {', '.join(noms)}")
 
-    print("\nvue mon planning (staffeur 2 = Margaux) :")
-    vue_margaux = formatter_vue_mon_planning(resultat["affectations"], 2, jobs, creneaux)
+    print("\nvue mon planning (staffeur 1 = Balsam) :")
+    vue_margaux = formatter_vue_mon_planning(resultat["affectations"], 1, jobs, creneaux)
     for jour, affs in vue_margaux.items():
         print(f"  {jour} :")
         for aff in affs:

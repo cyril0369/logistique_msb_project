@@ -76,12 +76,6 @@ CREATE INDEX IF NOT EXISTS idx_goodies_orders_user_id ON goodies_orders(user_id)
 CREATE TABLE IF NOT EXISTS staff (
   id SERIAL PRIMARY KEY,
   user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  username_snapshot VARCHAR(255),
-  email_snapshot VARCHAR(255),
-  first_name_snapshot VARCHAR(255),
-  last_name_snapshot VARCHAR(255),
-  phone_snapshot VARCHAR(20),
-  staff_code_validated INTEGER DEFAULT 0,
   bar INTEGER DEFAULT 0,
   cuisine INTEGER DEFAULT 0,
   arbitre_beach_rugby INTEGER DEFAULT 0,
@@ -97,13 +91,19 @@ CREATE TABLE IF NOT EXISTS staff (
 
 -- Backward-compatible schema upgrades for existing databases.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff INTEGER DEFAULT 0;
-
-ALTER TABLE staff ADD COLUMN IF NOT EXISTS username_snapshot VARCHAR(255);
-ALTER TABLE staff ADD COLUMN IF NOT EXISTS email_snapshot VARCHAR(255);
-ALTER TABLE staff ADD COLUMN IF NOT EXISTS first_name_snapshot VARCHAR(255);
-ALTER TABLE staff ADD COLUMN IF NOT EXISTS last_name_snapshot VARCHAR(255);
-ALTER TABLE staff ADD COLUMN IF NOT EXISTS phone_snapshot VARCHAR(20);
-ALTER TABLE staff ADD COLUMN IF NOT EXISTS staff_code_validated INTEGER DEFAULT 0;
+ALTER TABLE staff DROP COLUMN IF EXISTS staff_code_validated;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS bar INTEGER DEFAULT 0;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS cuisine INTEGER DEFAULT 0;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS arbitre_beach_rugby INTEGER DEFAULT 0;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS arbitre_beach_soccer INTEGER DEFAULT 0;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS arbitre_beach_volley INTEGER DEFAULT 0;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS arbitre_dodgeball INTEGER DEFAULT 0;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS arbitre_handball INTEGER DEFAULT 0;
+ALTER TABLE staff DROP COLUMN IF EXISTS username_snapshot;
+ALTER TABLE staff DROP COLUMN IF EXISTS email_snapshot;
+ALTER TABLE staff DROP COLUMN IF EXISTS first_name_snapshot;
+ALTER TABLE staff DROP COLUMN IF EXISTS last_name_snapshot;
+ALTER TABLE staff DROP COLUMN IF EXISTS phone_snapshot;
 
 CREATE INDEX IF NOT EXISTS idx_staff_user_id ON staff(user_id);
 

@@ -3,6 +3,38 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
 const DEFAULT_PASSWORD = 'Password123!';
+const DEMO_ADMIN_COUNT = 1;
+const DEMO_USER_COUNT = 200;
+const DEMO_STAFF_COUNT = 20;
+
+const JOHNNY_CASH_PROFILE = {
+  username: 'johnnycash',
+  email: 'johnny.cash@example.com',
+  first_name: 'Johnny',
+  last_name: 'Cash',
+  staff_type: 'nuit',
+  competenceIds: [1, 2, 6],
+  reservedSlots: [
+    ['vendredi', 18, 19, 1, 'Buvette backstage'],
+    ['vendredi', 19, 20, 2, 'Cuisine artistes'],
+    ['vendredi', 21, 22, 6, 'Arbitrage dodgeball nocturne'],
+    ['samedi', 18, 19, 1, 'Buvette backstage'],
+    ['samedi', 19, 20, 2, 'Cuisine artistes'],
+    ['samedi', 20, 21, 6, 'Arbitrage dodgeball nocturne'],
+    ['samedi', 22, 23, 1, 'Buvette concert'],
+    ['dimanche', 18, 19, 2, 'Cuisine fermeture logistique'],
+  ],
+};
+
+const COMPETENCE_ID_TO_STAFF_COLUMN = {
+  1: 'bar',
+  2: 'cuisine',
+  3: 'arbitre_beach_rugby',
+  4: 'arbitre_beach_soccer',
+  5: 'arbitre_beach_volley',
+  6: 'arbitre_dodgeball',
+  7: 'arbitre_handball',
+};
 
 const FIRST_NAMES = [
   'Alex','Sam','Jordan','Taylor','Casey','Drew','Morgan','Riley','Cameron','Hayden',
@@ -26,9 +58,10 @@ function randomBool() {
   return Math.random() < 0.5 ? 1 : 0;
 }
 
-function randomStaffType() {
-  const types = ['jour', 'nuit', 'mixte'];
-  return types[Math.floor(Math.random() * types.length)];
+function staffTypeForIndex(i) {
+  if (i < 8) return 'jour';
+  if (i < 14) return 'nuit';
+  return 'mixte';
 }
 
 function shuffle(arr) {
@@ -56,31 +89,29 @@ async function upsertUser(client, { username, email, first_name, last_name, is_a
   return rows[0].id;
 }
 
-async function upsertStaff(client, user_id) {
-  const staff_type = randomStaffType();
-  const bar = randomBool();
-  const cuisine = randomBool();
-  const arbitre_beach_rugby = randomBool();
-  const arbitre_beach_soccer = randomBool();
-  const arbitre_beach_volley = randomBool();
-  const arbitre_dodgeball = randomBool();
-  const arbitre_handball = randomBool();
-
+async function upsertStaff(client, user_id, forcedStaffType = null) {
+  const staff_type = forcedStaffType || 'mixte';
   await client.query(
-    `INSERT INTO staff (user_id, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer, arbitre_beach_volley, arbitre_dodgeball, arbitre_handball, staff_type)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `INSERT INTO staff (user_id, staff_type)
+     VALUES ($1, $2)
      ON CONFLICT (user_id) DO UPDATE SET
-       bar = EXCLUDED.bar,
-       cuisine = EXCLUDED.cuisine,
-       arbitre_beach_rugby = EXCLUDED.arbitre_beach_rugby,
-       arbitre_beach_soccer = EXCLUDED.arbitre_beach_soccer,
-       arbitre_beach_volley = EXCLUDED.arbitre_beach_volley,
-       arbitre_dodgeball = EXCLUDED.arbitre_dodgeball,
-       arbitre_handball = EXCLUDED.arbitre_handball,
        staff_type = EXCLUDED.staff_type,
        updated_at = CURRENT_TIMESTAMP
     `,
-    [user_id, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer, arbitre_beach_volley, arbitre_dodgeball, arbitre_handball, staff_type]
+    [user_id, staff_type]
+  );
+
+  await client.query(
+    `UPDATE users SET is_staff = 1 WHERE id = $1`,
+    [user_id]
+  );
+}
+
+async function removeAdminStaff(client) {
+  await client.query(
+    `DELETE FROM staff s
+     USING users u
+     WHERE s.user_id = u.id AND COALESCE(u.is_admin, 0) = 1`
   );
 }
 
@@ -211,13 +242,24 @@ async function seedCreneaux(client) {
   const slots = [
     ['vendredi', 9, 10, 'Vendredi 09:00-10:00'],
     ['vendredi', 10, 11, 'Vendredi 10:00-11:00'],
+    ['vendredi', 14, 15, 'Vendredi 14:00-15:00'],
+    ['vendredi', 20, 21, 'Vendredi 20:00-21:00'],
     ['samedi', 9, 10, 'Samedi 09:00-10:00'],
     ['samedi', 10, 11, 'Samedi 10:00-11:00'],
+    ['samedi', 14, 15, 'Samedi 14:00-15:00'],
+    ['samedi', 21, 22, 'Samedi 21:00-22:00'],
+    ['dimanche', 9, 10, 'Dimanche 09:00-10:00'],
     ['dimanche', 14, 15, 'Dimanche 14:00-15:00'],
-    ['dimanche', 15, 16, 'Dimanche 15:00-16:00'],
+    ['dimanche', 20, 21, 'Dimanche 20:00-21:00'],
+    ...JOHNNY_CASH_PROFILE.reservedSlots.map(([day_of_week, start_hour, end_hour]) => [
+      day_of_week,
+      start_hour,
+      end_hour,
+      `${day_of_week[0].toUpperCase()}${day_of_week.slice(1)} ${String(start_hour).padStart(2, '0')}:00-${String(end_hour).padStart(2, '0')}:00`,
+    ]),
   ];
 
-  const creneauIds = [];
+  const creneaux = [];
   for (const [day_of_week, start_hour, end_hour, label] of slots) {
     const { rows } = await client.query(
       `INSERT INTO creneaux (day_of_week, start_hour, end_hour, label)
@@ -227,19 +269,45 @@ async function seedCreneaux(client) {
        RETURNING id`,
       [day_of_week, start_hour, end_hour, label]
     );
-    creneauIds.push(rows[0].id);
+    creneaux.push({
+      id: rows[0].id,
+      day_of_week,
+      start_hour,
+      end_hour,
+      label,
+      is_night: start_hour >= 18 || start_hour < 8,
+    });
   }
-  return creneauIds;
+  return creneaux;
 }
 
-async function seedJobs(client, creneauIds) {
+function findCreneauId(creneaux, day, startHour) {
+  const found = creneaux.find((c) => c.day_of_week === day && c.start_hour === startHour);
+  if (!found) {
+    throw new Error(`Creneau not found for ${day} ${String(startHour).padStart(2, '0')}:00`);
+  }
+  return found.id;
+}
+
+async function seedJobs(client, creneaux) {
   const jobsData = [
-    [creneauIds[0], 6, 1, 'Service buvette'],
-    [creneauIds[1], 4, 2, 'Production cuisine'],
-    [creneauIds[2], 4, 3, 'Arbitrage Beach Rugby'],
-    [creneauIds[3], 4, 4, 'Arbitrage Beach Soccer'],
-    [creneauIds[4], 4, 5, 'Arbitrage Beach Volley'],
-    [creneauIds[5], 3, 6, 'Arbitrage Dodgeball'],
+    [findCreneauId(creneaux, 'vendredi', 9), 3, 1, 'Service buvette - ouverture'],
+    [findCreneauId(creneaux, 'vendredi', 10), 3, 2, 'Cuisine - prep dejeuner'],
+    [findCreneauId(creneaux, 'vendredi', 14), 2, 3, 'Arbitrage Beach Rugby - phase 1'],
+    [findCreneauId(creneaux, 'vendredi', 20), 2, 1, 'Buvette soiree'],
+    [findCreneauId(creneaux, 'samedi', 9), 2, 4, 'Arbitrage Beach Soccer - poules'],
+    [findCreneauId(creneaux, 'samedi', 10), 2, 5, 'Arbitrage Beach Volley - poules'],
+    [findCreneauId(creneaux, 'samedi', 14), 2, 6, 'Arbitrage Dodgeball - poules'],
+    [findCreneauId(creneaux, 'samedi', 21), 2, 2, 'Cuisine soiree'],
+    [findCreneauId(creneaux, 'dimanche', 9), 2, 7, 'Arbitrage Handball - finales'],
+    [findCreneauId(creneaux, 'dimanche', 14), 3, 1, 'Buvette - finales'],
+    [findCreneauId(creneaux, 'dimanche', 20), 2, 2, 'Cuisine fermeture'],
+    ...JOHNNY_CASH_PROFILE.reservedSlots.map(([day_of_week, start_hour, _end_hour, staff_type, description]) => [
+      findCreneauId(creneaux, day_of_week, start_hour),
+      1,
+      staff_type,
+      description,
+    ]),
   ];
 
   for (const [creneau, staff_needed, staff_type, description] of jobsData) {
@@ -249,9 +317,53 @@ async function seedJobs(client, creneauIds) {
       [creneau, staff_needed, staff_type, description]
     );
   }
+
+  return jobsData.length;
 }
 
-async function seedPlanningCompetencesAndDisponibilites(client, creneauIds) {
+async function syncLegacyStaffCompetenceFlags(client, staffId, competenceIds) {
+  const flags = {
+    bar: 0,
+    cuisine: 0,
+    arbitre_beach_rugby: 0,
+    arbitre_beach_soccer: 0,
+    arbitre_beach_volley: 0,
+    arbitre_dodgeball: 0,
+    arbitre_handball: 0,
+  };
+
+  for (const competenceId of competenceIds) {
+    const columnName = COMPETENCE_ID_TO_STAFF_COLUMN[competenceId];
+    if (columnName) {
+      flags[columnName] = 1;
+    }
+  }
+
+  await client.query(
+    `UPDATE staff
+     SET bar = $2,
+         cuisine = $3,
+         arbitre_beach_rugby = $4,
+         arbitre_beach_soccer = $5,
+         arbitre_beach_volley = $6,
+         arbitre_dodgeball = $7,
+         arbitre_handball = $8,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1`,
+    [
+      staffId,
+      flags.bar,
+      flags.cuisine,
+      flags.arbitre_beach_rugby,
+      flags.arbitre_beach_soccer,
+      flags.arbitre_beach_volley,
+      flags.arbitre_dodgeball,
+      flags.arbitre_handball,
+    ]
+  );
+}
+
+async function seedPlanningCompetencesAndDisponibilites(client, creneaux) {
   const competences = [
     [1, 'Bar', 'Bar'],
     [2, 'Cuisine', 'Cuisine'],
@@ -274,26 +386,27 @@ async function seedPlanningCompetencesAndDisponibilites(client, creneauIds) {
   }
 
   const { rows: staffRows } = await client.query(
-    `SELECT id, staff_type, bar, cuisine, arbitre_beach_rugby, arbitre_beach_soccer,
-            arbitre_beach_volley, arbitre_dodgeball, arbitre_handball
-     FROM staff
-     ORDER BY id`
+     `SELECT s.id, s.staff_type, u.email
+      FROM staff s
+      JOIN users u ON u.id = s.user_id
+      WHERE COALESCE(u.is_admin, 0) = 0 AND COALESCE(u.is_staff, 0) = 1
+      ORDER BY s.id`
   );
 
-  for (const s of staffRows) {
-    const compIds = [];
-    if (Number(s.bar) === 1) compIds.push(1);
-    if (Number(s.cuisine) === 1) compIds.push(2);
-    if (Number(s.arbitre_beach_rugby) === 1) compIds.push(3);
-    if (Number(s.arbitre_beach_soccer) === 1) compIds.push(4);
-    if (Number(s.arbitre_beach_volley) === 1) compIds.push(5);
-    if (Number(s.arbitre_dodgeball) === 1) compIds.push(6);
-    if (Number(s.arbitre_handball) === 1) compIds.push(7);
+  const reservedSlotIds = JOHNNY_CASH_PROFILE.reservedSlots.map(([day_of_week, start_hour]) =>
+    findCreneauId(creneaux, day_of_week, start_hour)
+  );
 
-    // Guarantee at least one competence so every staff profile is usable by the planner.
-    if (!compIds.length) {
-      compIds.push(1 + Math.floor(Math.random() * 7));
-    }
+  await client.query('DELETE FROM staffeur_competence');
+  await client.query('DELETE FROM staffeur_disponibilite');
+
+  for (const s of staffRows) {
+    const isJohnnyCash = s.email === JOHNNY_CASH_PROFILE.email;
+    const compIds = isJohnnyCash
+      ? [...JOHNNY_CASH_PROFILE.competenceIds]
+      : shuffle([1, 2, 3, 4, 5, 6, 7]).slice(0, 1 + Math.floor(Math.random() * 3));
+
+    await syncLegacyStaffCompetenceFlags(client, s.id, compIds);
 
     for (const id_competence of compIds) {
       await client.query(
@@ -304,14 +417,27 @@ async function seedPlanningCompetencesAndDisponibilites(client, creneauIds) {
       );
     }
 
-    let poolIds = [...creneauIds];
-    if (s.staff_type === 'jour') {
-      poolIds = creneauIds.filter((id, idx) => idx <= 3);
-    } else if (s.staff_type === 'nuit') {
-      poolIds = creneauIds.filter((id, idx) => idx >= 2);
+    const daySlotIds = creneaux.filter((c) => !c.is_night).map((c) => c.id);
+    const nightSlotIds = creneaux.filter((c) => c.is_night).map((c) => c.id);
+
+    let selected = creneaux.map((c) => c.id);
+    if (isJohnnyCash) {
+      selected = reservedSlotIds;
+    } else {
+      let poolIds = creneaux.map((c) => c.id).filter((id) => !reservedSlotIds.includes(id));
+      if (s.staff_type === 'jour') {
+        poolIds = daySlotIds.filter((id) => !reservedSlotIds.includes(id));
+      } else if (s.staff_type === 'nuit') {
+        poolIds = nightSlotIds.filter((id) => !reservedSlotIds.includes(id));
+      }
+
+      if (!poolIds.length) {
+        poolIds = creneaux.map((c) => c.id).filter((id) => !reservedSlotIds.includes(id));
+      }
+
+      selected = shuffle(poolIds).slice(0, Math.max(1, Math.ceil(poolIds.length * 0.65)));
     }
 
-    const selected = shuffle(poolIds).slice(0, Math.max(2, Math.ceil(poolIds.length * 0.65)));
     for (const id_creneau of selected) {
       await client.query(
         `INSERT INTO staffeur_disponibilite (id_staffeur, id_creneau)
@@ -367,37 +493,63 @@ async function main() {
 
     await truncateExistingTables(client);
 
-    const adminId = await upsertUser(client, {
+    for (let i = 0; i < DEMO_ADMIN_COUNT; i++) {
+      const adminId = await upsertUser(client, {
       username: 'admin',
       email: 'admin@example.com',
       first_name: 'Admin',
       last_name: 'User',
       is_admin: 1
     });
-    console.log('Admin id:', adminId);
+      console.log('Admin id:', adminId);
+    }
 
-    for (let i = 0; i < 1400; i++) {
+    await removeAdminStaff(client);
+
+    for (let i = 0; i < DEMO_USER_COUNT; i++) {
       const { first_name, last_name } = uniqueName(i);
       const username = `user${i + 1}`;
       const email = `user${i + 1}@example.com`;
       await upsertUser(client, { username, email, first_name, last_name, is_admin: 0 });
-      if ((i + 1) % 200 === 0) console.log(`Inserted users: ${i + 1}`);
+      if ((i + 1) % DEMO_USER_COUNT === 0) console.log(`Inserted users: ${i + 1}`);
     }
 
-    for (let i = 0; i < 100; i++) {
-      const { first_name, last_name } = uniqueName(1400 + i);
+    for (let i = 0; i < DEMO_STAFF_COUNT; i++) {
+      const { first_name, last_name } = uniqueName(DEMO_USER_COUNT + i);
       const username = `staff${i + 1}`;
       const email = `staff${i + 1}@example.com`;
+      const forcedStaffType = staffTypeForIndex(i);
       const userId = await upsertUser(client, { username, email, first_name, last_name, is_admin: 0 });
-      await upsertStaff(client, userId);
-      if ((i + 1) % 20 === 0) console.log(`Inserted staff: ${i + 1}`);
+      await upsertStaff(client, userId, forcedStaffType);
+      if ((i + 1) % DEMO_STAFF_COUNT === 0) console.log(`Inserted staff: ${i + 1}`);
     }
 
-    const creneauIds = await seedCreneaux(client);
-    await seedJobs(client, creneauIds);
-    await seedPlanningCompetencesAndDisponibilites(client, creneauIds);
-    console.log('Slots created:', creneauIds.length);
-    console.log('Jobs created:', 6);
+    const johnnyUserId = await upsertUser(client, {
+      username: JOHNNY_CASH_PROFILE.username,
+      email: JOHNNY_CASH_PROFILE.email,
+      first_name: JOHNNY_CASH_PROFILE.first_name,
+      last_name: JOHNNY_CASH_PROFILE.last_name,
+      is_admin: 0,
+    });
+    await upsertStaff(client, johnnyUserId, JOHNNY_CASH_PROFILE.staff_type);
+    console.log('Inserted extra staff profile:', JOHNNY_CASH_PROFILE.email);
+
+    const creneaux = await seedCreneaux(client);
+    const jobsCreated = await seedJobs(client, creneaux);
+
+    // Assign Johnny Cash to his reserved job slots
+    for (const [day_of_week, start_hour] of JOHNNY_CASH_PROFILE.reservedSlots) {
+      await client.query(
+        `UPDATE jobs SET staff_assigned = array_append(staff_assigned, $1)
+         WHERE creneau = (SELECT id FROM creneaux WHERE day_of_week = $2 AND start_hour = $3 LIMIT 1)`,
+        [johnnyUserId, day_of_week, start_hour]
+      );
+    }
+    console.log('Assigned Johnny Cash to his reserved job slots.');
+
+    await seedPlanningCompetencesAndDisponibilites(client, creneaux);
+    console.log('Slots created:', creneaux.length);
+    console.log('Jobs created:', jobsCreated);
 
     const teamStats = await seedTeamsAndMembership(client);
     console.log('Regular users assigned to teams:', teamStats.regularUsers);

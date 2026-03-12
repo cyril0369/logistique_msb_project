@@ -36,3 +36,7 @@ npm run start:all
 
 - API serves the built frontend from `apps/frontend/build` by default.
 - You can override that location with `FRONTEND_BUILD_DIR`.
+
+## Detailed Project Handover Documentation (FR)
+
+- `DOCUMENTATION_REPRISE_PROJET_FR.md`
